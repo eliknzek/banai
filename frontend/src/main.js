@@ -5,7 +5,7 @@ import '@fontsource/dm-sans/400.css';
 import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
-import { apiUrl, applyProposal, getCatalog, getDefaultDesign, renderDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
+import { apiUrl, applyProposal, getCatalog, getDefaultDesign, getSpec, renderDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
 import { createStore } from './state/store.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
@@ -78,7 +78,10 @@ function bindDialogs(store, viewer) {
     },
     request: (input) => renderDesign(input),
   });
-  const render = createRenderDialog({ session });
+  const render = createRenderDialog({
+    session,
+    requestSpec: (renderBase64) => getSpec({ design: store.getState().design, render: renderBase64, locale: getLocale() }),
+  });
   document.getElementById('open-save').addEventListener('click', save.open);
   document.getElementById('open-render').addEventListener('click', render.open);
 }

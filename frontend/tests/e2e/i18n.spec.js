@@ -32,7 +32,7 @@ test.describe('Hebrew interface', () => {
 
     // No English left on screen, apart from names and keys that stay Latin.
     const leftovers = await page.evaluate(() => {
-      const allowed = /\b(BanAI|AI|MDF|EN|Enter|Shift)\b/g;
+      const allowed = /\b(BanAI|AI|MDF|PDF|EN|Enter|Shift)\b/g;
       return (document.body.innerText.replace(allowed, '').match(/[A-Za-z]{2,}/g) ?? []);
     });
     expect(leftovers).toEqual([]);
@@ -82,4 +82,19 @@ test.describe('Hebrew interface', () => {
     await page.getByTestId('dim-width').press('Enter');
     await expect(page.locator('#properties-panel')).toContainText('הערך מחוץ לטווח המותר');
   });
+});
+
+test('the render dialog and the carpenter spec are in Hebrew, and the PDF is asked for in Hebrew', async ({ page }) => {
+  await openBasic(page);
+  await page.getByTestId('open-render').click();
+  await expect(page.getByTestId('render-generate')).toHaveText('צור הדמיה');
+  await page.getByTestId('render-generate').click();
+  await expect(page.getByTestId('render-image')).toBeVisible();
+  await expect(page.getByTestId('spec-download')).toHaveText('הורד מפרט (PDF)');
+  await expect(page.getByTestId('spec-share')).toHaveText('שלח מפרט לנגר');
+  const specRequest = page.waitForRequest((r) => r.url().endsWith('/api/spec'));
+  const download = page.waitForEvent('download');
+  await page.getByTestId('spec-download').click();
+  expect((await specRequest).postDataJSON().locale).toBe('he');
+  await download;
 });

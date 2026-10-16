@@ -87,6 +87,16 @@ export async function renderDesign({ design, image, doorsVisible = true, signal 
   throw new ApiError(`HTTP_${response.status}`, 'The request failed. Please try again.', response.status);
 }
 
+/** The carpenter spec PDF (a Blob) for the design, with the render as its illustration. */
+export async function getSpec({ design, render = null, locale = 'he' }, fetchImpl = fetch) {
+  const response = await post('/api/spec', {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ design, render, locale }),
+  }, fetchImpl);
+  if (!response.ok) throw await errorFrom(response);
+  return response.blob();
+}
+
 /** Push-to-talk recording -> { text }. The text then goes through sendChat like typed input. */
 export async function transcribeAudio(blob, fetchImpl = fetch) {
   const form = new FormData();

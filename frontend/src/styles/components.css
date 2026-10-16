@@ -164,6 +164,9 @@
 .render__empty, .render__working { display: grid; place-items: center; gap: var(--space-2); text-align: center; padding: var(--space-4); }
 .render__working { grid-auto-flow: row; color: var(--md-sys-color-primary); }
 .render__image { width: 100%; height: 100%; object-fit: contain; background: #f5f4f1; }
+/* Short windows: the picture gives way, so the spec and the actions stay on screen. */
+.render__placeholder { max-height: max(220px, calc(100vh - 380px)); grid-template: minmax(0, 1fr) / minmax(0, 1fr); overflow: hidden; }
+.render__image { min-height: 0; }
 .dialog:has(.render__placeholder) { width: min(760px, calc(100vw - 32px)); }
 
 /* Start screen */
@@ -252,3 +255,28 @@
 [dir='rtl'] .icon--arrow, [dir='rtl'] .icon--send { transform: scaleX(-1); }
 /* A left-to-right detail (the compartment widths) keeps its order but lines up with the Hebrew text. */
 [dir='rtl'] .proposal__detail[dir='ltr'] { text-align: right; }
+/* Carpenter animation (render in progress). Decorative; the status text is the accessible label. */
+.carpenter { width: min(320px, 90%); height: auto; }
+.carpenter__floor { fill: #e8ddd5; }
+.carpenter__bench { fill: #8a5a3c; }
+.carpenter__board { fill: #c49a6c; stroke: #8a5a3c; stroke-width: 0.8; opacity: 0; transform-box: fill-box; transform-origin: center; animation: board-in 4.8s ease-out infinite; }
+.carpenter__legs { fill: #3b3d40; }
+.carpenter__body { fill: #b4532a; }
+.carpenter__apron { fill: #f2e3d5; }
+.carpenter__head { fill: #f0c4a0; }
+.carpenter__cap { fill: #3b3d40; }
+.carpenter__eye { fill: #231917; }
+.carpenter__arm { transform-box: view-box; transform-origin: 92px 70px; animation: hammer 0.6s ease-in-out infinite; }
+.carpenter__sleeve { fill: #b4532a; }
+.carpenter__handle { fill: #8a5a3c; }
+.carpenter__hammer { fill: #5b6470; }
+.carpenter__spark { fill: #ffc24a; opacity: 0; transform-box: fill-box; transform-origin: center; animation: spark 0.6s ease-out infinite; }
+@keyframes hammer { 0%, 100% { transform: rotate(-38deg); } 45% { transform: rotate(14deg); } 55% { transform: rotate(14deg); } }
+@keyframes spark { 0%, 40% { opacity: 0; transform: scale(0.4); } 50% { opacity: 1; transform: scale(1.1); } 70%, 100% { opacity: 0; transform: scale(0.6); } }
+@keyframes board-in { 0% { opacity: 0; transform: translateY(-14px); } 8% { opacity: 1; transform: none; } 88% { opacity: 1; } 100% { opacity: 0; } }
+[dir='rtl'] .carpenter { transform: scaleX(-1); } /* the carpenter works toward the reading direction */
+@media (prefers-reduced-motion: reduce) {
+  .carpenter__board { animation: none; opacity: 1; }
+  .carpenter__arm, .carpenter__spark { animation: none; }
+}
+.spec-box { display: grid; gap: var(--space-2); margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--md-sys-color-outline-variant); border-radius: var(--md-sys-shape-medium); background: var(--md-sys-color-surface-container-low); }

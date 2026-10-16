@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
-from app.api import chat, health, proposals, reference, render, voice
+from app.api import chat, health, proposals, reference, render, spec, voice
 from app.api.common import error_response, limiter
 from app.config import get_settings
 
@@ -12,6 +12,7 @@ MAX_BODY_BYTES = 256 * 1024
 BODY_LIMITS = {
     "/api/voice/transcribe": voice.MAX_AUDIO_BYTES + 16 * 1024,
     "/api/render": render.MAX_IMAGE_BASE64 + 512 * 1024,  # the PNG (base64) plus the design
+    "/api/spec": spec.MAX_RENDER_BASE64 + 512 * 1024,  # the render (base64) plus the design
 }
 
 
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(proposals.router)
     app.include_router(voice.router)
     app.include_router(render.router)
+    app.include_router(spec.router)
     return app
 
 

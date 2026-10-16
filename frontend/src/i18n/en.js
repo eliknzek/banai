@@ -256,4 +256,12 @@ export default Object.freeze({
   'render.imageAlt': 'Illustrative render of your wardrobe',
   'render.failed': 'The render could not be created. Please try again.',
   'api.UNSUPPORTED_IMAGE': 'The image could not be read. Please try again.',
+  'spec.download': 'Download spec (PDF)',
+  'spec.share': 'Send spec to the carpenter',
+  'spec.working': 'Preparing PDF…',
+  'spec.failed': 'The spec could not be created. Please try again.',
+  'spec.note': 'A detailed spec for the carpenter: dimensions of every part, a front drawing, materials, suggested hardware and assembly order. It is not a manufacturing drawing.',
+  'spec.shareTitle': 'Wardrobe spec from BanAI',
+  'spec.shareText': 'Here is the spec for the wardrobe I designed. Please check the measurements before cutting.',
+  'spec.mailBody': 'Hello,\n\nAttached is the spec for the wardrobe I designed in BanAI (the PDF was just downloaded; please attach it to this email).\n\nThank you!',
 });

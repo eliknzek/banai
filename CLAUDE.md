@@ -36,6 +36,11 @@ BanAI is an MVP AI wardrobe designer for standard straight wardrobes only. Three
 - **Phased delivery.** Work proceeds Phase 1 → 10 (`docs/architecture.md` §10a). After each phase, stop, report (what was implemented, files changed, real test output, known issues, next step), and wait for the user's approval. Never roll into the next phase on your own.
 - **Branches.** All work lands on `dev`, which Railway auto-deploys to the `dev` environment. Pushing or merging to `main` deploys **production** and needs explicit user approval.
 - **Excluded features (do not build):** pricing, quotes, orders, accounts or registration, dashboards, manufacturing/CNC export, feasibility rules, room design, image uploads, mobile-first layout, drag-and-drop geometry, and any AI change applied without approval. The app must never claim a design is manufacturable.
+- **Carpenter spec PDF (in scope since 2026-10-16, spec §9b, ADR-008).** After a render, the customer can download or share (device share sheet) a build spec for a carpenter:
+  - parts as designed, a front drawing, materials, suggested hardware and a suggested assembly order, with the render as the illustration
+  - still excluded: CNC files, a cut list (cut sizes and clearances are the carpenter's call), server-side email, and any claim of manufacturability
+  - every page carries the "not a manufacturing drawing, verify before cutting" disclaimer
+  - the PDF is built on the server (`backend/app/spec/`, ReportLab + python-bidi) in the interface language
 - **Voice (in scope since 2026-10-16, spec §9a).** Voice is only another way to talk to the existing agent:
   - Chained pipeline: speech-to-text → the existing `/api/chat` → text-to-speech. Speech never bypasses `/api/chat`, so every change is still a validated, signed proposal.
   - Voice never applies a change: the customer still presses **Confirm**.

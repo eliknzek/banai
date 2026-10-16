@@ -24,7 +24,7 @@ describe('dictionaries', () => {
 
   it('translate every Hebrew string (no English left in Hebrew text)', () => {
     // Allowed Latin in Hebrew strings: product names, keys and units.
-    const allowed = /\b(BanAI|AI|MDF|EN|Enter|Shift)\b/g;
+    const allowed = /\b(BanAI|AI|MDF|PDF|EN|Enter|Shift)\b/g;
     for (const [key, value] of Object.entries(he)) {
       const latin = value.replace(allowed, '').replace(/\{\w+\}/g, '').match(/[A-Za-z]{2,}/g);
       expect(latin, `${key}: ${value}`).toBeNull();

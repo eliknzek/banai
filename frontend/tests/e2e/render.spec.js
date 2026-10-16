@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, openDesigner, test } from './fixtures.js';
 
 // The e2e backend renders with FakeImages: it returns the uploaded capture itself, so these
@@ -57,5 +58,40 @@ test.describe('photoreal render (Hebrew)', () => {
     await expect(page.getByTestId('render-image')).toBeVisible();
     await expect(page.getByTestId('render-download')).toHaveText('הורד תמונה');
     await expect(dialog).toContainText('תמונה להמחשה בלבד, לא המודל המדויק');
+  });
+});
+
+test.describe('render progress and carpenter spec', () => {
+  test('a carpenter animation plays while waiting, then the spec can be downloaded as a PDF', async ({ page }) => {
+    await openDesigner(page);
+    // Hold the render response a moment so the waiting state is visible.
+    await page.route('**/api/render', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      await route.continue();
+    });
+    await page.getByTestId('open-render').click();
+    await page.getByTestId('render-generate').click();
+    const animation = page.getByTestId('render-working').locator('svg.carpenter');
+    await expect(animation).toBeVisible();
+    expect(['chair', 'table', 'bookshelf', 'cabinet']).toContain(await animation.getAttribute('data-kind'));
+    await expect(page.getByTestId('render-image')).toBeVisible();
+    await expect(page.getByTestId('spec-box')).toBeVisible();
+
+    const download = page.waitForEvent('download');
+    const specRequest = page.waitForRequest((r) => r.url().endsWith('/api/spec'));
+    await page.getByTestId('spec-download').click();
+    const sent = (await specRequest).postDataJSON();
+    expect(sent.locale).toBe('en');
+    expect(sent.render.length).toBeGreaterThan(100); // the image shown in the dialog
+    const file = await download;
+    expect(file.suggestedFilename()).toMatch(/^banai-spec-\d{4}-\d{2}-\d{2}\.pdf$/);
+    const bytes = readFileSync(await file.path());
+    expect(bytes.subarray(0, 4).toString()).toBe('%PDF');
+  });
+
+  test('the spec buttons are hidden until there is a render', async ({ page }) => {
+    await openDesigner(page);
+    await page.getByTestId('open-render').click();
+    await expect(page.getByTestId('spec-box')).toBeHidden();
   });
 });
