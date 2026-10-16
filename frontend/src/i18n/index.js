@@ -32,6 +32,16 @@ const listeners = new Set();
 export const getLocale = () => locale;
 export const getDirection = () => (locale === 'he' ? 'rtl' : 'ltr');
 
+/**
+ * Displayed number of the `index`-th (1-based, from the left) of `count` side-by-side parts
+ * (compartments, partitions, doors). Right-to-left languages count from the right; the data
+ * itself stays ordered left to right. Without a valid count the index is shown as is.
+ */
+export function spatialNumber(index, count) {
+  if (getDirection() !== 'rtl' || !Number.isInteger(count) || !Number.isInteger(index) || index < 1 || index > count) return index;
+  return count - index + 1;
+}
+
 // Own properties only: keys may come from the server (card rows, error codes, catalog ids), so
 // a key such as "toString" or "__proto__" must never resolve to a built-in.
 const lookup = (dictionary, key) => (typeof key === 'string' && Object.hasOwn(dictionary, key) ? dictionary[key] : undefined);

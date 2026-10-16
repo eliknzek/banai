@@ -92,6 +92,20 @@ class TestPdf:
         for phrase in ("Wardrobe build specification", "Side panel", "Hinged door", "Not a manufacturing drawing", "196.4"):
             assert phrase in content, phrase
 
+    def test_hebrew_counts_compartments_from_the_right(self):
+        assert Writer("he").num(3, 3) == 1 and Writer("he").num(1, 3) == 3
+        assert Writer("en").num(3, 3) == 3
+        # The basic design's only hanging rail is in the middle compartment, shelves at 80 cm are
+        # in the left and right ones: in Hebrew the right one (last in the list) is compartment 1.
+        # pypdf returns table cells in visual order, so compare without spaces.
+        notes = [line.replace(" ", "") for line in text_of(build_spec_pdf(BASIC, None, "he")).splitlines() if "בגובה" in line]
+        right = [f"{s['y'] / 10:.1f}" for s in BASIC["compartments"][-1]["shelves"]]  # 80.0, 140.0
+        assert all(any(f"{y},בגובה1תא" in line for line in notes) for y in right)
+        assert f"{right[0]},בגובה1תא" in notes[0]  # listed first: the parts read from the right
+        assert "מימין לשמאל" in text_of(build_spec_pdf(BASIC, None, "he"))
+        english = text_of(build_spec_pdf(BASIC, None, "en"))
+        assert f"Compartment 3, at {right[0]} cm" in english
+
     def test_hebrew_lines_are_reordered_and_brackets_mirrored(self):
         writer = Writer("he")
         assert writer.visual("לוח (MDF)") == get_display("לוח (MDF)").translate(str.maketrans("()", ")("))

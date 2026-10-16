@@ -1,7 +1,7 @@
 // Proposal card rows in the interface language. The server sends each row as a stable `key`
-// with raw `params` (lengths in mm, 1-based indexes, catalog ids) plus an English title/detail,
+// with raw `params` (lengths in mm, 1-based indexes from the left with their `count`, catalog ids) plus an English title/detail,
 // which is used as is for unknown keys. Nothing here trusts the params beyond formatting them.
-import { catalogName, formatCm, t } from './index.js';
+import { catalogName, formatCm, spatialNumber, t } from './index.js';
 
 const SECTION_BY_FIELD = Object.freeze({ material: 'materials', color: 'colors', finish: 'finishes' });
 const ITEM_KINDS = new Set(['shelf', 'drawer', 'rail']);
@@ -11,9 +11,9 @@ const isNumber = (value) => Number.isFinite(value);
 export function refText(ref) {
   if (!ref || typeof ref !== 'object') return t('ref.component');
   if (ref.kind === 'compartment' && !isNumber(ref.index)) return t('ref.newCompartment');
-  if (ref.kind === 'compartment') return t('ref.compartment', { i: ref.index });
-  if (ITEM_KINDS.has(ref.kind) && isNumber(ref.compartment)) return t('ref.item', { kind: t(`kind.${ref.kind}`), c: ref.compartment });
-  if (INDEXED_KINDS.has(ref.kind) && isNumber(ref.index)) return t('ref.indexed', { kind: t(`kind.${ref.kind}`), i: ref.index });
+  if (ref.kind === 'compartment') return t('ref.compartment', { i: spatialNumber(ref.index, ref.count) });
+  if (ITEM_KINDS.has(ref.kind) && isNumber(ref.compartment)) return t('ref.item', { kind: t(`kind.${ref.kind}`), c: spatialNumber(ref.compartment, ref.compartments) });
+  if (INDEXED_KINDS.has(ref.kind) && isNumber(ref.index)) return t('ref.indexed', { kind: t(`kind.${ref.kind}`), i: spatialNumber(ref.index, ref.count) });
   return t('ref.component');
 }
 
@@ -36,7 +36,7 @@ const RENDERERS = {
   create: (p) => [t('change.create'), t('change.createDetail', { w: formatCm(p.width), h: formatCm(p.height), d: formatCm(p.depth), n: p.count })],
   dimensions: (p) => [t('change.dimensions'), sizes(p, [['width', 'change.width'], ['height', 'change.height'], ['depth', 'change.depth']]).join(' · ') || t('change.unchanged')],
   doors: (p) => [t('change.doors'), { none: t('change.doorsNone'), sliding: t('change.doorsSliding', { n: p.count }), hinged: t('change.doorsHinged', { n: p.count }) }[p.type]],
-  compartmentAdded: (p) => [t('change.compartmentAdded'), t('change.compartmentAddedDetail', { p: p.position, w: formatCm(p.width) })],
+  compartmentAdded: (p) => [t('change.compartmentAdded'), t('change.compartmentAddedDetail', { p: spatialNumber(p.position, p.count), w: formatCm(p.width) })],
   compartmentWidth: (p) => [refText(p.ref), t('change.width', { v: formatCm(p.width) })],
   partitionAdded: (p) => [t('change.partitionAdded'), t('change.partitionAddedDetail', { ref: refText(p.ref), offset: formatCm(p.offset) })],
   partition: (p) => [refText(p.ref), sizes(p, [['position', 'change.position'], ['thickness', 'change.thickness']]).join(', ') || t('change.unchanged')],
@@ -48,7 +48,7 @@ const RENDERERS = {
   materialCleared: (p) => [targetText(p.target), t('change.materialCleared')],
   removed: (p) => [t('change.removed'), refText(p.ref)],
   compartments: (p) => [t('change.compartments'), `${(Array.isArray(p.widths) ? p.widths : []).filter(isNumber).map((w) => (w / 10).toFixed(1)).join(' · ')} ${t('unit.cm')}`],
-  narrow: (p) => [t('change.narrow'), t('change.narrowDetail', { i: p.index, w: formatCm(p.width) })],
+  narrow: (p) => [t('change.narrow'), t('change.narrowDetail', { i: spatialNumber(p.index, p.count), w: formatCm(p.width) })],
 };
 
 // The widths list follows the wardrobe left to right, so it reads left to right in every

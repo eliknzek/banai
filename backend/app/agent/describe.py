@@ -2,8 +2,10 @@
 
 The card lists what the ops will do, written by the server from the validated ops, never
 by the model. Each row carries:
-- `key` and `params`: language-neutral data (lengths in mm, 1-based indexes, catalog ids)
-  that the client renders in the interface language (frontend/src/i18n/changes.js);
+- `key` and `params`: language-neutral data (lengths in mm, 1-based indexes counted from the
+  left, catalog ids) that the client renders in the interface language
+  (frontend/src/i18n/changes.js). Indexes come with the count of their kind (`count`, or
+  `compartments` for items), so a right-to-left language can number from the right;
 - `title` and `detail`: the same row in English, used as the fallback.
 """
 
@@ -47,7 +49,7 @@ def _layout_rows(base: dict, result: dict) -> list[dict]:
     rows = [_row("compartments", {"widths": widths}, "Compartments", " · ".join(f"{w / 10:.1f}" for w in widths) + " cm")]
     for index, (cid, width) in enumerate(after):
         if width < NARROW_COMPARTMENT_MM and before.get(cid) != width:
-            rows.append(_row("narrow", {"index": index + 1, "width": width}, "Narrow compartment",
+            rows.append(_row("narrow", {"index": index + 1, "count": len(after), "width": width}, "Narrow compartment",
                              f"Compartment {index + 1}: {cm(width)}", level="warning"))
     return rows
 
@@ -56,18 +58,26 @@ def _compartment_ref(compartment_id: str, base: dict, result: dict) -> dict:
     for design in (base, result):
         for index, compartment in enumerate(design["compartments"]):
             if compartment["id"] == compartment_id:
-                return {"kind": "compartment", "index": index + 1}
+                return {"kind": "compartment", "index": index + 1, "count": len(design["compartments"])}
     return {"kind": "compartment", "index": None}
 
 
 def _component_ref(component_id: str, base: dict, result: dict) -> dict:
-    found = locate(base, component_id) or locate(result, component_id)
+    design = base if locate(base, component_id) else result
+    found = locate(design, component_id)
     if not found:
         return {"kind": "component"}
     kind, index, _ = found
     kind = KIND.get(kind, "component")
-    if kind in ("shelf", "drawer", "rail"):
-        return {"kind": kind, "compartment": index + 1}
+    if kind in ("shelf", "drawer", "rail", "compartment"):
+        count = len(design["compartments"])
+        if kind == "compartment":
+            return {"kind": kind, "index": index + 1, "count": count}
+        return {"kind": kind, "compartment": index + 1, "compartments": count}
+    if kind == "partition":
+        return {"kind": kind, "index": index + 1, "count": len(design["partitions"])}
+    if kind == "door":
+        return {"kind": kind, "index": index + 1, "count": len(design["doors"]["items"])}
     return {"kind": kind, "index": index + 1}
 
 
@@ -102,7 +112,8 @@ def _change(op, base: dict, result: dict, names: dict) -> dict:
             detail = {"none": "No doors", "sliding": f"Sliding, {count} panels", "hinged": f"Hinged, {count} doors"}[op.type]
             return _row("doors", {"type": op.type, "count": count}, "Doors", detail)
         case o.AddCompartment():
-            return _row("compartmentAdded", {"position": op.position + 1, "width": op.width}, "Compartment added",
+            params = {"position": op.position + 1, "count": len(result["compartments"]), "width": op.width}
+            return _row("compartmentAdded", params, "Compartment added",
                         f"Position {op.position + 1}, width {cm(op.width)}")
         case o.ModifyCompartment():
             ref = _compartment_ref(op.compartment_id, base, result)

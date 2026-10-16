@@ -45,6 +45,14 @@ def clean_text(value: object, limit: int) -> str:
 
 
 LANGUAGE_NAMES = {"he": "Hebrew", "en": "English"}
+# Right-to-left interfaces count from the right, as the customer sees it (Obsidian 04).
+NUMBERING_NOTE = {
+    "he": ("In this interface compartments, partitions and doors are numbered from the RIGHT: "
+           "compartment 1 (תא 1) is the rightmost, i.e. the LAST entry of design.compartments; "
+           "the same for partitions and doors. The design arrays themselves stay ordered left to right. "
+           "Use this numbering when reading the customer's numbers and in your replies. "
+           "Words like ימין/שמאל (right/left) keep their plain meaning."),
+}
 
 
 def run_turn(client: LLMClient, messages: list[dict], design: dict, revision: int,
@@ -55,6 +63,7 @@ def run_turn(client: LLMClient, messages: list[dict], design: dict, revision: in
     items = [{"role": "developer", "content": design_context(base, revision)},
              {"role": "developer", "content": f"The interface language is {language}. Reply in the customer's "
                                               f"language; if it is unclear, reply in {language}."},
+             *([{"role": "developer", "content": NUMBERING_NOTE[locale]}] if locale in NUMBERING_NOTE else []),
              *messages]
     instructions = system_prompt(catalog)
 

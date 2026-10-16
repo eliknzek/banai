@@ -67,7 +67,7 @@ def test_non_structural_changes_have_no_layout_rows():
 def test_new_or_resized_narrow_compartments_are_flagged():
     rows = _changes([{"op": "add_compartment", "position": 3, "width": 481}])
     assert (rows[1]["title"], rows[1]["detail"]) == ("Compartments", "64.3 · 64.3 · 14.3 · 48.1 cm")
-    assert rows[2] == {"key": "narrow", "params": {"index": 3, "width": 143}, "title": "Narrow compartment",
+    assert rows[2] == {"key": "narrow", "params": {"index": 3, "count": 4, "width": 143}, "title": "Narrow compartment",
                        "detail": "Compartment 3: 14.3 cm", "level": "warning"}
     assert len(rows) == 3
 
@@ -101,8 +101,8 @@ def test_item_changes_name_their_compartment():
     changes = describe_ops(parse_ops(raw), base, result, catalog)
     assert [(c["title"], c["detail"]) for c in changes] == [("Shelf in compartment 1", "at 30.0 cm"),
                                                             ("Removed", "Shelf in compartment 1")]
-    assert changes[0]["key"] == "item" and changes[0]["params"] == {"ref": {"kind": "shelf", "compartment": 1}, "y": 300}
-    assert changes[1]["params"] == {"ref": {"kind": "shelf", "compartment": 1}}
+    assert changes[0]["key"] == "item" and changes[0]["params"] == {"ref": {"kind": "shelf", "compartment": 1, "compartments": 3}, "y": 300}
+    assert changes[1]["params"] == {"ref": {"kind": "shelf", "compartment": 1, "compartments": 3}}
 
 
 def test_parse_arguments_only_accepts_json_objects():
@@ -161,14 +161,27 @@ def test_openai_errors_map_to_safe_reasons(error, reason):
     ({"op": "update_dimensions", "width": 2400}, "dimensions", {"width": 2400}),
     ({"op": "configure_doors", "type": "sliding", "count": 3}, "doors", {"type": "sliding", "count": 3}),
     ({"op": "add_shelf", "compartmentId": "cmp_middle", "y": 1000}, "shelfAdded",
-     {"ref": {"kind": "compartment", "index": 2}, "y": 1000}),
+     {"ref": {"kind": "compartment", "index": 2, "count": 3}, "y": 1000}),
     ({"op": "set_material", "target": "doors", "color": {"catalogId": "walnut"}}, "material",
      {"target": {"kind": "doors"}, "values": [{"field": "color", "catalogId": "walnut"}]}),
     ({"op": "set_material", "target": "carcass", "color": {"custom": True, "name": "Sage"}}, "material",
      {"target": {"kind": "carcass"}, "values": [{"field": "color", "custom": "Sage"}]}),
-    ({"op": "remove_component", "id": "dr_left"}, "removed", {"ref": {"kind": "door", "index": 1}}),
+    ({"op": "remove_component", "id": "dr_left"}, "removed", {"ref": {"kind": "door", "index": 1, "count": 3}}),
 ])
 def test_rows_carry_language_neutral_keys_and_params(raw, key, params):
     row = _changes([raw])[0]
     assert row["key"] == key and row["params"] == params
     assert row["title"] and row["detail"]  # English fallback is always present
+
+
+def test_every_index_comes_with_the_count_of_its_kind():
+    """So a right-to-left interface can number from the right (Obsidian 04)."""
+    catalog = load_catalog()
+    base = apply_ops(basic_wardrobe(), [], catalog)
+    raw = [{"op": "add_compartment", "position": 3, "width": 481},
+           {"op": "remove_component", "id": base["partitions"][0]["id"]}]
+    rows = describe_ops(parse_ops(raw[:1]), base, apply_ops(base, raw[:1], catalog), catalog)
+    assert rows[0]["params"] == {"position": 4, "count": 4, "width": 481}
+    assert rows[0]["detail"] == "Position 4, width 48.1 cm"  # the English fallback still counts from the left
+    [removed] = describe_ops(parse_ops(raw[1:]), base, base, catalog)
+    assert removed["params"] == {"ref": {"kind": "partition", "index": 1, "count": 2}}

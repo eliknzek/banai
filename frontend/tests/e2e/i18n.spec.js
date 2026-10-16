@@ -98,3 +98,18 @@ test('the render dialog and the carpenter spec are in Hebrew, and the PDF is ask
   expect((await specRequest).postDataJSON().locale).toBe('he');
   await download;
 });
+
+test('in Hebrew compartments are numbered from the right, in the editor, the selection and the card', async ({ page }) => {
+  await openBasic(page);
+  const ids = await page.evaluate(() => window.__banai.store.getState().design.compartments.map((c) => c.id));
+  const rows = page.locator('.compartment-row');
+  // The list starts with the rightmost compartment, labelled 1.
+  await expect(rows.first().getByTestId(`select-${ids.at(-1)}`)).toHaveText('תא 1');
+  await expect(rows.last().getByTestId(`select-${ids[0]}`)).toHaveText(`תא ${ids.length}`);
+
+  await page.getByTestId('chat-input').fill('Add a fourth compartment');
+  await page.getByTestId('chat-send').click();
+  const card = page.getByTestId('proposal-card');
+  await expect(card).toContainText('מקום 1, רוחב 48.1 ס״מ'); // appended on the right
+  await expect(card).toContainText('תא 2: 14.3 ס״מ'); // the third from the left of four
+});

@@ -60,6 +60,17 @@ def test_interface_language_is_passed_to_the_model():
     assert "interface language is Hebrew" in client.requests[0][1]["content"]
 
 
+def test_hebrew_numbering_rule_is_given_to_the_model_in_hebrew_only():
+    client = ScriptedClient([ToolCall(RESPOND, {"message": "?"})])
+    run_turn(client, USER, basic_wardrobe(), 1, load_catalog(), KEY, locale="he")
+    note = client.requests[0][2]
+    assert note["role"] == "developer" and "numbered from the RIGHT" in note["content"]
+    assert client.requests[0][3:] == USER
+    english = ScriptedClient([ToolCall(RESPOND, {"message": "?"})])
+    run_turn(english, USER, basic_wardrobe(), 1, load_catalog(), KEY, locale="en")
+    assert not any("numbered from the RIGHT" in str(item.get("content")) for item in english.requests[0])
+
+
 def test_invalid_ops_are_repaired_on_retry():
     client = ScriptedClient([propose([{"op": "update_dimensions", "width": 10}]), propose(GOOD_OPS)])
     result = turn(client)

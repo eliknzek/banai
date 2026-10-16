@@ -57,6 +57,11 @@ class Writer:
     def t(self, key: str, **params) -> str:
         return text(self.locale, key, **params)
 
+    def num(self, index: int, count: int) -> int:
+        """Displayed number of the index-th (1-based, from the left) of `count` side-by-side
+        parts: right-to-left languages count from the right."""
+        return count - index + 1 if self.rtl else index
+
     def visual(self, line: str) -> str:
         return get_display(line).translate(MIRROR) if self.rtl else line
 
@@ -70,6 +75,21 @@ class Writer:
     def para(self, value: str, width: float, size: float = 10, color=INK, space_after: float = 0) -> Paragraph:
         body = "<br/>".join(escape(line) for line in self.lines(value, size, width)) or " "
         return Paragraph(body, self.style(size, color, space_after=space_after))
+
+
+INTERIOR_KEYS = ("shelf", "drawerFront", "rail")
+
+
+def _in_reading_order(parts: list, w: Writer, count: int) -> list:
+    """Carcass, then interior items, then doors; in a right-to-left language each group is listed
+    by the displayed compartment number (stable, so the order inside a compartment is kept)."""
+    def key(part):
+        if part.key in INTERIOR_KEYS:
+            return (1, w.num(part.note["compartment"], count))
+        if part.key == "hingedDoor":
+            return (2, min(w.num(i, count) for i in part.note["compartments"]))
+        return (2 if part.key == "slidingPanel" else 0, 0)
+    return sorted(parts, key=key)
 
 
 class Elevation(Flowable):
@@ -130,7 +150,7 @@ class Elevation(Flowable):
                     c.drawString(X(left) + 1.5, Y(base + y) + 2.2, cm(y))
             c.setFillColor(INK)
             c.setFont(w.font, 7.5)
-            label = w.visual(w.t("compartmentShort", i=comp["index"]))
+            label = w.visual(w.t("compartmentShort", i=w.num(comp["index"], len(s.compartments))))
             c.drawCentredString(X((left + right) / 2), Y(s.height) - 9, label)
             c.setFont(w.font, 7)
             self._hdim(left, right, Y(0) - 7, X, cm(comp["width"]))
@@ -299,7 +319,8 @@ def build_spec_pdf(design: dict, render: bytes | None, locale: str = "he", today
 
     # Page 3: parts
     rows = [[w.t("col.part"), w.t("col.qty"), w.t("col.size"), w.t("col.finish")]]
-    for part in spec.parts:
+    n = len(spec.compartments)
+    for part in _in_reading_order(spec.parts, w, n):
         size = "—" if part.key == "rail" else " × ".join(cm(v) for v in part.size)
         if part.finish in ("carcass", "doors", "hardware"):
             finish = w.t(f"finish.{part.finish}")
@@ -307,11 +328,11 @@ def build_spec_pdf(design: dict, render: bytes | None, locale: str = "he", today
             finish = w.t("finish.custom", value=_appearance(_find_appearance(design, part.finish) or {}, names))
         notes = []
         if part.key in ("shelf", "drawerFront"):
-            notes.append(w.t("note.inCompartment", c=part.note["compartment"], y=cm(part.note["y"])))
+            notes.append(w.t("note.inCompartment", c=w.num(part.note["compartment"], n), y=cm(part.note["y"])))
         elif part.key == "rail":
-            notes.append(w.t("note.railLength", c=part.note["compartment"], y=cm(part.note["y"]), l=cm(part.size[0])))
+            notes.append(w.t("note.railLength", c=w.num(part.note["compartment"], n), y=cm(part.note["y"]), l=cm(part.size[0])))
         elif part.key == "hingedDoor":
-            first, last = part.note["compartments"]
+            first, last = sorted(w.num(i, n) for i in part.note["compartments"])
             key = "note.hinge" if last != first else "note.hingeOne"
             notes.append(w.t(key, side=w.t(f"side.{part.note['hinge']}"), range=f"{first}–{last}" if last != first else str(first)))
         elif part.key == "slidingPanel" and part.note.get("overlap"):
