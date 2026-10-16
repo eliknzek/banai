@@ -74,11 +74,14 @@ export async function transcribeAudio(blob, fetchImpl = fetch) {
   throw new ApiError(`HTTP_${response.status}`, 'The request failed. Please try again.', response.status);
 }
 
-/** Spoken audio (an mp3 Blob) for an agent reply. Needs the reply's server token. */
+/**
+ * Spoken audio for an agent reply (needs the reply's server token). Returns the streaming
+ * mp3 Response, so the player can start before the whole clip has arrived.
+ */
 export async function speakReply({ text, token }, fetchImpl = fetch) {
   const response = await post('/api/voice/speak', {
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, token }),
   }, fetchImpl);
   if (!response.ok) throw await errorFrom(response);
-  return response.blob();
+  return response;
 }

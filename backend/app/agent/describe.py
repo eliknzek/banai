@@ -19,9 +19,29 @@ def cm(mm: int) -> str:
     return f"{mm / 10:.1f} cm"
 
 
+# A compartment narrower than this is flagged on the card. Configurable default, not a
+# business or manufacturing rule (Obsidian 04 - Decisions & Assumptions).
+NARROW_COMPARTMENT_MM = 300
+
+
 def describe_ops(ops: list, base: dict, result: dict, catalog: dict) -> list[dict]:
     names = {entry["id"]: entry["name"] for section in catalog.values() for entry in section}
-    return [_change(op, base, result, names) for op in ops]
+    return [_change(op, base, result, names) for op in ops] + _layout_rows(base, result)
+
+
+def _layout_rows(base: dict, result: dict) -> list[dict]:
+    """Server-computed truth for structural changes: every resulting compartment width, plus a
+    warning for any new or resized compartment that ends up narrow. The model never does this
+    arithmetic for the customer."""
+    before = {c["id"]: c["width"] for c in base["compartments"]}
+    after = [(c["id"], c["width"]) for c in result["compartments"]]
+    if [w for _, w in after] == [c["width"] for c in base["compartments"]]:
+        return []
+    rows = [_row("Compartments", " · ".join(f"{w / 10:.1f}" for _, w in after) + " cm")]
+    for index, (cid, width) in enumerate(after):
+        if width < NARROW_COMPARTMENT_MM and before.get(cid) != width:
+            rows.append({**_row("Narrow compartment", f"Compartment {index + 1}: {cm(width)}"), "level": "warning"})
+    return rows
 
 
 def _row(title: str, detail: str) -> dict:

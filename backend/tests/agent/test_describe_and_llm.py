@@ -40,8 +40,54 @@ def test_each_op_kind_gets_a_readable_change_line(raw, expected):
     parsed = parse_ops([raw])
     with ids.seeded_ids("prop_0000000000000000"):
         result = apply_ops(base, [raw], catalog)
-    [change] = describe_ops(parsed, base, result, catalog)
+    change, *layout = describe_ops(parsed, base, result, catalog)
     assert (change["title"], change["detail"]) == expected
+    assert all(row["title"] in ("Compartments", "Narrow compartment") for row in layout)
+
+
+def _changes(raw):
+    catalog = load_catalog()
+    base = apply_ops(basic_wardrobe(), [], catalog)
+    with ids.seeded_ids("prop_0000000000000000"):
+        result = apply_ops(base, raw, catalog)
+    return describe_ops(parse_ops(raw), base, result, catalog)
+
+
+def test_structural_changes_list_every_resulting_width():
+    rows = _changes([{"op": "update_dimensions", "width": 2400}])
+    assert rows[-1] == {"title": "Compartments", "detail": "77.6 · 77.6 · 77.6 cm"}
+
+
+def test_non_structural_changes_have_no_layout_rows():
+    assert [r["title"] for r in _changes([{"op": "update_dimensions", "height": 2300}])] == ["Dimensions"]
+    assert [r["title"] for r in _changes([{"op": "add_shelf", "compartmentId": "cmp_left", "y": 1000}])] == ["Shelf added"]
+
+
+def test_new_or_resized_narrow_compartments_are_flagged():
+    rows = _changes([{"op": "add_compartment", "position": 3, "width": 481}])
+    assert rows[1] == {"title": "Compartments", "detail": "64.3 · 64.3 · 14.3 · 48.1 cm"}
+    assert rows[2] == {"title": "Narrow compartment", "detail": "Compartment 3: 14.3 cm", "level": "warning"}
+    assert len(rows) == 3
+
+
+def test_unchanged_narrow_compartments_are_not_flagged_again():
+    catalog = load_catalog()
+    narrow = apply_ops(apply_ops(basic_wardrobe(), [], catalog),
+                       [{"op": "modify_compartment", "compartmentId": "cmp_left", "width": 200}], catalog)
+    raw = [{"op": "modify_compartment", "compartmentId": "cmp_middle", "width": 700}]
+    result = apply_ops(narrow, raw, catalog)
+    titles = [r["title"] for r in describe_ops(parse_ops(raw), narrow, result, catalog)]
+    assert "Narrow compartment" not in titles
+
+
+def test_prompt_documents_door_ids_and_the_new_rules():
+    from app.agent.prompts import system_prompt
+    prompt = system_prompt(load_catalog())
+    assert "id?, compartmentIds, hingeSide" in prompt
+    assert "Propose only the ops the customer asked for" in prompt
+    assert "Never pick an arbitrary width" in prompt
+    assert "never say you are proposing" in prompt
+    assert "Do not state calculated sizes" in prompt
 
 
 def test_item_changes_name_their_compartment():

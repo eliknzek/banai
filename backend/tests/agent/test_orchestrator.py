@@ -31,7 +31,7 @@ def test_valid_proposal_is_dry_run_described_and_signed():
     assert proposal["baseRevision"] == 1
     assert proposal["baseHash"] == signing.design_hash(apply_ops(basic_wardrobe(), [], load_catalog()))
     assert proposal["ops"] == GOOD_OPS
-    assert [c["title"] for c in proposal["changes"]] == ["Dimensions", "Doors"]
+    assert [c["title"] for c in proposal["changes"]] == ["Dimensions", "Doors", "Compartments"]
     assert proposal["changes"][0]["detail"] == "Width 240.0 cm"
     assert proposal["changes"][1]["detail"] == "Sliding, 2 panels"
     assert signing.verify(KEY, proposal["signature"], proposal["proposalId"], proposal["ops"], 1, proposal["baseHash"])

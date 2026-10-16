@@ -109,6 +109,8 @@ class FakeClient:
             ops.append({"op": "update_dimensions", "width": int(match.group(1)) * 10})
         if "sliding" in text:
             ops.append({"op": "configure_doors", "type": "sliding", "count": 2})
+        if "fourth compartment" in text:  # leaves compartment 3 narrow, to exercise the card warning
+            ops.append({"op": "add_compartment", "position": 3, "width": 481})
         if not ops:
             return ToolCall(RESPOND, {"message": "Could you tell me the width you need in cm?"})
         return ToolCall(PROPOSE_CHANGES, {"message": "Here is a proposal for you to review.",

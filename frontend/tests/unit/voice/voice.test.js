@@ -227,6 +227,70 @@ describe('audio player', () => {
   });
 });
 
+function fakeMediaSource() {
+  const log = [];
+  class FakeSourceBuffer {
+    constructor() { this.listeners = {}; }
+    addEventListener(type, fn) { this.listeners[type] = fn; }
+    removeEventListener(type) { delete this.listeners[type]; }
+    appendBuffer(chunk) { log.push(['append', new TextDecoder().decode(chunk)]); queueMicrotask(() => this.listeners.updateend?.()); }
+  }
+  class FakeMediaSource {
+    static isTypeSupported = (type) => type === 'audio/mpeg';
+    constructor() { this.readyState = 'open'; this.listeners = {}; queueMicrotask(() => this.listeners.sourceopen?.()); }
+    addEventListener(type, fn) { this.listeners[type] = fn; }
+    addSourceBuffer(type) { log.push(['buffer', type]); return new FakeSourceBuffer(); }
+    endOfStream() { log.push(['end']); this.readyState = 'ended'; }
+  }
+  return { FakeMediaSource, log };
+}
+
+function streamResponse(chunks) {
+  const encoder = new TextEncoder();
+  let i = 0;
+  const reader = {
+    read: vi.fn(async () => (i < chunks.length ? { done: false, value: encoder.encode(chunks[i++]) } : { done: true })),
+    cancel: vi.fn(async () => {}),
+  };
+  return { body: { getReader: () => reader }, reader };
+}
+
+describe('streaming playback', () => {
+  const makePlayer = (MediaSourceImpl, log) => createAudioPlayer({
+    MediaSourceImpl,
+    urls: { createObjectURL: () => 'blob:ms', revokeObjectURL() {} },
+    createAudio: () => ({ play: vi.fn(async () => { log.push(['play']); }), pause: vi.fn(), addEventListener() {} }),
+  });
+
+  it('starts playing after the first chunk and appends the rest in order', async () => {
+    const { FakeMediaSource, log } = fakeMediaSource();
+    await makePlayer(FakeMediaSource, log).play(streamResponse(['a', 'b', 'c']));
+    expect(log).toEqual([['buffer', 'audio/mpeg'], ['append', 'a'], ['play'], ['append', 'b'], ['append', 'c'], ['end']]);
+  });
+
+  it('stop() cancels the download', async () => {
+    const { FakeMediaSource, log } = fakeMediaSource();
+    const player = makePlayer(FakeMediaSource, log);
+    const response = streamResponse(['a', 'b', 'c']);
+    response.reader.read.mockImplementationOnce(async () => {
+      player.stop();
+      return { done: false, value: new TextEncoder().encode('a') };
+    });
+    await player.play(response);
+    expect(response.reader.cancel).toHaveBeenCalled();
+    expect(log.some(([kind]) => kind === 'play')).toBe(false);
+  });
+
+  it('falls back to the whole clip when MediaSource cannot play mp3', async () => {
+    const log = [];
+    const player = makePlayer(undefined, log);
+    const blob = vi.fn(async () => new Blob(['mp3']));
+    await player.play({ body: { getReader() {} }, blob });
+    expect(blob).toHaveBeenCalled();
+    expect(log).toEqual([['play']]);
+  });
+});
+
 describe('voice api client', () => {
   it('uploads the recording as multipart and returns the transcript', async () => {
     const fetchImpl = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true, data: { text: 'שלום' } }) }));
@@ -237,10 +301,10 @@ describe('voice api client', () => {
     expect(init.body.get('audio')).toBeInstanceOf(Blob);
   });
 
-  it('returns the spoken audio blob and surfaces server errors', async () => {
-    const audio = new Blob(['mp3'], { type: 'audio/mpeg' });
-    const ok = vi.fn(async () => ({ ok: true, status: 200, blob: async () => audio }));
-    await expect(speakReply({ text: 'hi', token: 't' }, ok)).resolves.toBe(audio);
+  it('returns the streaming audio response and surfaces server errors', async () => {
+    const response = { ok: true, status: 200, body: {} };
+    const ok = vi.fn(async () => response);
+    await expect(speakReply({ text: 'hi', token: 't' }, ok)).resolves.toBe(response);
     expect(JSON.parse(ok.mock.calls[0][1].body)).toEqual({ text: 'hi', token: 't' });
     const bad = vi.fn(async () => ({ ok: false, status: 400, json: async () => ({ success: false, error: { code: 'BAD_TOKEN', message: 'no' } }) }));
     await expect(speakReply({ text: 'hi', token: 't' }, bad)).rejects.toMatchObject({ code: 'BAD_TOKEN', status: 400 });

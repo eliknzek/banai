@@ -83,7 +83,7 @@ class FailingSpeech(FakeSpeech):
     def transcribe(self, *args):
         raise AgentUnavailable("quota")
 
-    def speak(self, text):
+    def speak_stream(self, text):
         raise AgentUnavailable("network")
 
 
@@ -156,12 +156,57 @@ def test_openai_speech_passes_model_and_vocabulary_prompt():
     assert calls[0]["file"][0] == "speech.webm"
 
 
-def test_openai_speech_returns_mp3_bytes():
-    def create(**kwargs):
-        assert kwargs["response_format"] == "mp3" and kwargs["voice"] == "alloy"
-        return SimpleNamespace(read=lambda: b"mp3")
+class FakeStream:
+    """Mimics with_streaming_response.create(): the request happens on __enter__."""
 
-    assert openai_speech(speech=create).speak("hi") == b"mp3"
+    def __init__(self, chunks, fail=None):
+        self.chunks, self.fail, self.closed = chunks, fail, False
+
+    def __enter__(self):
+        if self.fail:
+            raise self.fail
+        return SimpleNamespace(iter_bytes=lambda chunk_size=None: iter(self.chunks))
+
+    def __exit__(self, *exc):
+        self.closed = True
+
+
+def openai_streaming_speech(stream, calls):
+    s = OpenAISpeech(api_key="sk-test", stt_model="gpt-transcribe", tts_model="gpt-4o-mini-tts", tts_voice="alloy")
+
+    def create(**kwargs):
+        calls.append(kwargs)
+        return stream
+
+    s._client = SimpleNamespace(audio=SimpleNamespace(speech=SimpleNamespace(
+        with_streaming_response=SimpleNamespace(create=create))))
+    return s
+
+
+def test_openai_speech_streams_mp3_chunks_and_closes_the_stream():
+    calls, stream = [], FakeStream([b"ab", b"cd"])
+    chunks = openai_streaming_speech(stream, calls).speak_stream("hi")
+    assert calls[0]["response_format"] == "mp3" and calls[0]["voice"] == "alloy" and calls[0]["input"] == "hi"
+    assert list(chunks) == [b"ab", b"cd"]
+    assert stream.closed
+
+
+def test_openai_speech_stream_errors_are_raised_before_streaming():
+    error = _status_error(openai.RateLimitError, 429, "insufficient_quota")
+    with pytest.raises(AgentUnavailable) as caught:
+        openai_streaming_speech(FakeStream([], fail=error), []).speak_stream("hi")
+    assert caught.value.reason == "quota"
+
+
+def test_speak_streams_the_audio_in_chunks():
+    speech = use_speech()
+    token = signing.reply_token(KEY, "hello")
+    with client.stream("POST", "/api/voice/speak", json={"text": "hello", "token": token}) as response:
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "audio/mpeg"
+        parts = [part for part in response.iter_bytes() if part]
+    assert b"".join(parts) == SILENT_MP3
+    assert speech.spoken == ["hello"]
 
 
 def _status_error(cls, status, code):

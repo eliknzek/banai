@@ -8,6 +8,7 @@ Nothing in this module can change a design. Audio is never stored or logged.
 from __future__ import annotations
 
 import io
+from collections.abc import Iterator
 from typing import Protocol
 
 from app.agent.llm import REQUEST_TIMEOUT_SECONDS, AgentUnavailable
@@ -24,10 +25,13 @@ VOCABULARY_PROMPT = (
 SILENT_MP3 = bytes.fromhex("fffb9064" + "00" * 413)
 
 
+
 class SpeechClient(Protocol):
     def transcribe(self, audio: bytes, filename: str, content_type: str) -> str: ...
 
-    def speak(self, text: str) -> bytes: ...
+    def speak_stream(self, text: str) -> Iterator[bytes]:
+        """Opens the speech stream (raising AgentUnavailable on failure) and returns its mp3 chunks."""
+        ...
 
 
 class OpenAISpeech:
@@ -45,12 +49,26 @@ class OpenAISpeech:
             )
         return (getattr(result, "text", "") or "").strip()
 
-    def speak(self, text: str) -> bytes:
+    def speak_stream(self, text: str) -> Iterator[bytes]:
+        # The request is sent here, before any byte reaches the browser, so an upstream error
+        # can still become a clean 503. Chunks are then forwarded as OpenAI produces them,
+        # instead of waiting for the whole clip: playback starts about a second sooner.
         with self._mapped_errors():
-            response = self._client.audio.speech.create(
+            stream = self._client.audio.speech.with_streaming_response.create(
                 model=self._tts_model, voice=self._tts_voice, input=text, response_format="mp3",
             )
-        return response.read()
+            response = stream.__enter__()
+
+        def chunks() -> Iterator[bytes]:
+            try:
+                # No fixed chunk size: forward bytes as soon as OpenAI sends them.
+                yield from response.iter_bytes()
+            except Exception:  # noqa: BLE001 - headers are sent; the clip just ends early
+                return
+            finally:
+                stream.__exit__(None, None, None)
+
+        return chunks()
 
     def _mapped_errors(self):
         return _ErrorMapper(self._openai)
@@ -93,6 +111,7 @@ class FakeSpeech:
     def transcribe(self, audio: bytes, filename: str, content_type: str) -> str:
         return self.transcript
 
-    def speak(self, text: str) -> bytes:
+    def speak_stream(self, text: str) -> Iterator[bytes]:
         self.spoken.append(text)
-        return SILENT_MP3
+        half = len(SILENT_MP3) // 2
+        return iter([SILENT_MP3[:half], SILENT_MP3[half:]])

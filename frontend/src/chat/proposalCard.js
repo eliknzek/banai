@@ -6,10 +6,20 @@ import { STALE_MESSAGE } from './chatModel.js';
 
 export function renderProposalCard(proposal, status, { onConfirm, onCancel }) {
   const stale = status === 'stale';
-  const rows = proposal.changes.map((change) => el('li', { className: 'proposal__row' }, [
-    el('span', { className: 'proposal__title', text: change.title, attrs: { dir: 'auto' } }),
-    el('span', { className: 'proposal__detail', text: change.detail, attrs: { dir: 'auto' } }),
-  ]));
+  // Rows are written by the server. A "warning" row (for example a narrow compartment) is
+  // highlighted so the customer notices it before confirming.
+  const rows = proposal.changes.map((change) => {
+    const warning = change.level === 'warning';
+    const row = el('li', { className: `proposal__row${warning ? ' proposal__row--warning' : ''}` }, [
+      el('span', { className: 'proposal__title', attrs: { dir: 'auto' } }, [
+        ...(warning ? [icon('info', { size: 16 })] : []),
+        document.createTextNode(change.title),
+      ]),
+      el('span', { className: 'proposal__detail', text: change.detail, attrs: { dir: 'auto' } }),
+    ]);
+    if (warning) row.dataset.testid = 'proposal-warning';
+    return row;
+  });
 
   const confirm = el('button', { className: 'btn btn--primary', attrs: { type: 'button' } }, [icon('check', { size: 18 }), document.createTextNode(' Confirm')]);
   confirm.dataset.testid = 'proposal-confirm';

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -83,7 +83,8 @@ def speak(request: Request, body: SpeakRequest,
     if client is None:
         return _unavailable("not_configured")
     try:
-        audio = client.speak(body.text)
+        chunks = client.speak_stream(body.text)
     except AgentUnavailable as error:
         return _unavailable(error.reason)
-    return Response(content=audio, media_type="audio/mpeg", headers={"Cache-Control": "no-store"})
+    return StreamingResponse(chunks, media_type="audio/mpeg",
+                             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})

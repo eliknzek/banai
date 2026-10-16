@@ -74,6 +74,20 @@ test.describe('AI agent proposals', () => {
     expect(fresh.status()).toBe(200);
   });
 
+  test('structural proposals list every resulting width and flag narrow compartments', async ({ page }) => {
+    await openDesigner(page);
+    await ask(page, 'Make it 240 cm wide');
+    await expect(page.getByTestId('proposal-card')).toContainText('77.6 · 77.6 · 77.6 cm');
+    await expect(page.getByTestId('proposal-warning')).toHaveCount(0);
+    await page.getByTestId('proposal-cancel').click();
+
+    await ask(page, 'Add a fourth compartment');
+    await expect(page.getByTestId('proposal-card')).toContainText('64.3 · 64.3 · 14.3 · 48.1 cm');
+    const warning = page.getByTestId('proposal-warning');
+    await expect(warning).toHaveCount(1);
+    await expect(warning).toContainText('Compartment 3: 14.3 cm');
+  });
+
   test('the page never scrolls past the workspace', async ({ page }) => {
     await openDesigner(page);
     const { scroll, viewport } = await page.evaluate(() => ({

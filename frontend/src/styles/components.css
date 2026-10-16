@@ -125,6 +125,9 @@
 .proposal__list { margin: 0 0 var(--space-3); padding: 0; list-style: none; }
 .proposal__row { display: flex; flex-direction: column; padding: var(--space-2) 0; border-top: 1px solid var(--md-sys-color-outline-variant); }
 .proposal__title { font: var(--md-sys-typescale-label-large); }
+.proposal__row--warning { margin: var(--space-1) calc(-1 * var(--space-2)); padding: var(--space-2); border: 0; border-radius: var(--md-sys-shape-small, 8px); background: #fff6dc; color: #3d2f00; }
+.proposal__row--warning .proposal__title { display: inline-flex; align-items: center; gap: var(--space-1); }
+.proposal__row--warning .icon { color: #8a6a00; }
 .proposal__detail { color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-small); font-variant-numeric: tabular-nums; }
 .proposal__note { margin: 0 0 var(--space-2); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-small); }
 .proposal--stale { border-color: #e0b84d; background: #fff6dc; }

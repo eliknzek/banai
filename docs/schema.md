@@ -128,3 +128,8 @@ These live in `defaults.py` / `defaults.js` and are mirrored on both sides:
 - the basic wardrobe (`shared/fixtures/designs/basic.json`): 2000×2400×600 with 3 compartments and hinged doors
 
 The catalog contents (`catalog.json`) are placeholder prototype data.
+
+## Proposal card rows (agent, `backend/app/agent/describe.py`)
+- Every card row is written by the server from the validated ops, never by the model.
+- After any change to compartment widths, a **Compartments** row lists every resulting width in cm, for example `64.3 · 64.3 · 14.3 · 48.1 cm`. The model is told not to state calculated sizes itself.
+- A new or resized compartment narrower than `NARROW_COMPARTMENT_MM` (300 mm) gets a **Narrow compartment** row with `level: "warning"`, highlighted on the card. This is a configurable default for visibility, not a manufacturing or feasibility rule.
