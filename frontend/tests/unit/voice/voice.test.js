@@ -281,6 +281,36 @@ describe('streaming playback', () => {
     expect(log.some(([kind]) => kind === 'play')).toBe(false);
   });
 
+  it('fetches a server speech url and plays it from the first chunk', async () => {
+    const { FakeMediaSource, log } = fakeMediaSource();
+    const fetchImpl = vi.fn(async () => ({ ok: true, ...streamResponse(['a', 'b']) }));
+    const player = createAudioPlayer({
+      MediaSourceImpl: FakeMediaSource, fetchImpl,
+      urls: { createObjectURL: () => 'blob:ms', revokeObjectURL() {} },
+      createAudio: () => ({ play: vi.fn(async () => { log.push(['play']); }), pause: vi.fn(), addEventListener() {} }),
+    });
+    await player.play({ url: 'http://api/api/voice/stream/abc' });
+    expect(fetchImpl).toHaveBeenCalledWith('http://api/api/voice/stream/abc');
+    expect(log).toEqual([['buffer', 'audio/mpeg'], ['append', 'a'], ['play'], ['append', 'b'], ['end']]);
+  });
+
+  it('reports an error when the speech url is gone, and ignores a fetch that was superseded', async () => {
+    const { FakeMediaSource } = fakeMediaSource();
+    const onError = vi.fn();
+    let resolveFirst;
+    const fetchImpl = vi.fn()
+      .mockImplementationOnce(() => new Promise((r) => { resolveFirst = r; }))
+      .mockImplementationOnce(async () => ({ ok: false, status: 404 }));
+    const player = createAudioPlayer({ MediaSourceImpl: FakeMediaSource, fetchImpl, urls: { createObjectURL: () => 'x', revokeObjectURL() {} },
+      createAudio: () => ({ play: vi.fn(async () => {}), pause() {}, addEventListener() {} }) });
+    const first = player.play({ url: 'u1' }, { onError: vi.fn() });
+    await player.play({ url: 'u2' }, { onError });
+    expect(onError).toHaveBeenCalled(); // 404
+    resolveFirst({ ok: true, ...streamResponse(['late']) });
+    await first; // superseded: never plays
+    expect(player.isPlaying()).toBe(false);
+  });
+
   it('falls back to the whole clip when MediaSource cannot play mp3', async () => {
     const log = [];
     const player = makePlayer(undefined, log);

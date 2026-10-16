@@ -5,7 +5,7 @@ import '@fontsource/dm-sans/400.css';
 import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
-import { applyProposal, getCatalog, getDefaultDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
+import { apiUrl, applyProposal, getCatalog, getDefaultDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
 import { createStore } from './state/store.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
@@ -95,7 +95,8 @@ async function boot() {
     getRevision: () => store.getState().revision,
     askAgent: (messages) => {
       const { design, revision } = store.getState();
-      return sendChat({ messages, design, revision });
+      // Spoken replies start on the server together with the answer (see voiceController).
+      return sendChat({ messages, design, revision, speak: !voice.isMuted() });
     },
   });
   const voice = createVoiceController({
@@ -105,6 +106,7 @@ async function boot() {
     speak: (reply) => speakReply(reply),
     player: createAudioPlayer(),
     storage: safeLocalStorage(),
+    resolveUrl: apiUrl,
   });
   const chat = mountChat(document.getElementById('chat-panel'), {
     model: chatModel,

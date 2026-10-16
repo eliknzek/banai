@@ -55,9 +55,15 @@ export const getCatalog = (fetchImpl = fetch) => getJson('/api/catalog', fetchIm
 /** Returns { design, revision } for the predefined basic wardrobe. */
 export const getDefaultDesign = (fetchImpl = fetch) => getJson('/api/designs/default', fetchImpl);
 
-/** One agent turn. Returns { reply, proposal | null }. Never changes the design. */
-export const sendChat = ({ messages, design, revision }, fetchImpl = fetch) =>
-  postJson('/api/chat', { messages, design, revision }, fetchImpl);
+/**
+ * One agent turn. Returns { reply, replyToken, proposal | null, speechUrl | null }. Never changes
+ * the design. With speak, the server starts the spoken reply at once and returns its speechUrl.
+ */
+export const sendChat = ({ messages, design, revision, speak = false }, fetchImpl = fetch) =>
+  postJson('/api/chat', { messages, design, revision, speak }, fetchImpl);
+
+/** Absolute URL for a server path such as a speechUrl. */
+export const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
 /** Apply a signed proposal. Returns { design, revision }. Throws ApiError code STALE on 409. */
 export const applyProposal = ({ design, revision, proposal }, fetchImpl = fetch) =>

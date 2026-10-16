@@ -72,7 +72,7 @@ describe('api client agent calls', () => {
     const [url, init] = fetchImpl.mock.calls[0];
     expect(url).toBe('http://localhost:8000/api/chat');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual({ messages: [], design: {}, revision: 1 });
+    expect(JSON.parse(init.body)).toEqual({ messages: [], design: {}, revision: 1, speak: false });
     await applyProposal({ design: {}, revision: 1, proposal: {} }, ok({ design: {}, revision: 2 }));
   });
 

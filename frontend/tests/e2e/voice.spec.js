@@ -30,24 +30,31 @@ test.describe('voice', () => {
     await expect(page.getByTestId('chat-mic')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('a typed request is also answered aloud', async ({ page }) => {
+  test('a typed request is answered aloud with speech the server started together with the reply', async ({ page }) => {
     await openDesigner(page);
-    const spoken = page.waitForResponse((r) => r.url().endsWith('/api/voice/speak'));
+    const chatRequest = page.waitForRequest((r) => r.url().endsWith('/api/chat'));
+    const spoken = page.waitForResponse((r) => r.url().includes('/api/voice/stream/'));
     await page.getByTestId('chat-input').fill('Make it 240 cm wide');
     await page.getByTestId('chat-send').click();
+    expect((await chatRequest).postDataJSON().speak).toBe(true);
     const response = await spoken;
     expect(response.status()).toBe(200);
     expect(response.headers()['content-type']).toBe('audio/mpeg');
+    // The text and the card appear (with the voice, or at the latest after the start timeout).
+    await expect(page.getByTestId('chat-messages')).toContainText('Here is a proposal');
+    await expect(page.getByTestId('proposal-card')).toBeVisible();
   });
 
   test('muted replies are not spoken, and the choice survives a reload', async ({ page }) => {
     await openDesigner(page);
     const speakCalls = [];
-    page.on('request', (request) => { if (request.url().endsWith('/api/voice/speak')) speakCalls.push(request); });
+    page.on('request', (request) => { if (request.url().includes('/api/voice/')) speakCalls.push(request); });
     await page.getByTestId('chat-mute').click();
     await expect(page.getByTestId('chat-mute')).toHaveAttribute('aria-pressed', 'true');
+    const chatRequest = page.waitForRequest((r) => r.url().endsWith('/api/chat'));
     await page.getByTestId('chat-input').fill('Make it 240 cm wide');
     await page.getByTestId('chat-send').click();
+    expect((await chatRequest).postDataJSON().speak).toBe(false);
     await expect(page.getByTestId('proposal-card')).toBeVisible();
     await page.waitForTimeout(500);
     expect(speakCalls).toEqual([]);

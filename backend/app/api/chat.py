@@ -15,11 +15,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.agent.llm import AgentUnavailable, FakeClient, LLMClient, OpenAIClient
 from app.agent.orchestrator import run_turn
-from app.api.common import error_response, limiter
+from app.api.common import error_response, get_speech_client, limiter
 from app.config import Settings, get_settings
 from app.domain.catalog import load_catalog
 from app.domain.errors import DomainError
 from app.services import signing
+from app.services.speech import SpeechClient
+from app.services.speech_sessions import store as speech_sessions
 
 router = APIRouter(prefix="/api")
 
@@ -48,6 +50,8 @@ class ChatRequest(BaseModel):
     messages: Annotated[list[ChatMessage], Field(min_length=1, max_length=MAX_MESSAGES)]
     design: dict
     revision: Annotated[int, Field(ge=1, le=1_000_000_000)]
+    # True when the reply will be read aloud: speech then starts on the server right away.
+    speak: bool = False
 
 
 @lru_cache
@@ -72,6 +76,7 @@ def get_agent_client(settings: Annotated[Settings, Depends(get_settings)]) -> LL
 @limiter.limit(CHAT_RATE_LIMIT)
 def chat(request: Request, body: ChatRequest,
          client: Annotated[LLMClient | None, Depends(get_agent_client)],
+         speech: Annotated[SpeechClient | None, Depends(get_speech_client)],
          settings: Annotated[Settings, Depends(get_settings)]):
     if body.messages[-1].role != "user":
         return error_response(422, "INVALID_REQUEST", "The last message must come from the customer.")
@@ -85,4 +90,10 @@ def chat(request: Request, body: ChatRequest,
     except AgentUnavailable as error:
         return error_response(503, "AGENT_UNAVAILABLE", UNAVAILABLE_MESSAGES[error.reason], reason=error.reason)
     token = signing.reply_token(signing_key(settings), result.reply)
-    return {"success": True, "data": {"reply": result.reply, "replyToken": token, "proposal": result.proposal}, "error": None}
+    data = {"reply": result.reply, "replyToken": token, "proposal": result.proposal, "speechUrl": None}
+    if body.speak and speech is not None:
+        # Start the speech before this response is sent, so the voice is ready about when the
+        # text arrives. The browser reads it from the single-use stream URL.
+        speech_id = speech_sessions.start(lambda: speech.speak_stream(result.reply))
+        data["speechUrl"] = f"/api/voice/stream/{speech_id}"
+    return {"success": True, "data": data, "error": None}

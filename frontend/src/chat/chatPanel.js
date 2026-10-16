@@ -72,30 +72,50 @@ export function mountChat(container, { model, onConfirm, voice = null }) {
 
   let renderedCount = 0;
   let renderedProposalKey = '';
+  // Assistant bubbles whose text may still be revealing with the voice: id -> { bubble, span }.
+  const revealing = new Map();
+  const shownText = (message) => (voice && message.role === 'assistant' ? voice.visibleText(message) : message.text);
+
   function render() {
     const messages = model.getMessages();
     welcome.hidden = messages.length > 0 || model.getProposal() !== null;
     list.hidden = messages.length === 0;
-    // Only newly added bubbles are created (and animate in); existing ones stay untouched.
+    // Only newly added bubbles are created (and animate in); existing ones stay untouched,
+    // except a spoken reply's text, which appears with the voice and keeps pace with it.
     if (messages.length < renderedCount) {
       list.replaceChildren();
       renderedCount = 0;
+      revealing.clear();
     }
     messages.slice(renderedCount).forEach((message) => {
       // dir=auto: each bubble follows its own text direction (Hebrew replies render right-to-left).
       const bubble = el('div', { className: `chat__bubble chat__bubble--${message.role}`, attrs: { dir: 'auto' } });
       if (message.role === 'system') bubble.append(icon('info', { size: 16 }));
-      bubble.append(el('span', { text: message.text }));
+      const span = el('span', { text: '' });
+      bubble.append(span);
       list.append(bubble);
+      if (message.role === 'assistant') revealing.set(message.id, { bubble, span, message });
+      else span.textContent = message.text;
     });
     renderedCount = messages.length;
-    const busy = model.isBusy();
+    let pendingVoice = false;
+    revealing.forEach(({ bubble, span, message }, id) => {
+      const text = shownText(message);
+      bubble.hidden = text === null;
+      if (text === null) {
+        pendingVoice = true;
+        return;
+      }
+      if (span.textContent !== text) span.textContent = text;
+      if (text === message.text) revealing.delete(id);
+    });
+    const busy = model.isBusy() || pendingVoice;
     thinking.hidden = !busy;
-    sendButton.disabled = busy;
+    sendButton.disabled = model.isBusy();
     list.scrollTop = list.scrollHeight;
 
-    // Re-render the card only when the proposal or its status changed (keeps its entrance animation calm).
-    const proposal = model.getProposal();
+    // The card waits for its reply's voice too, so text, voice and card arrive together.
+    const proposal = pendingVoice ? null : model.getProposal();
     const status = model.getProposalStatus();
     const key = proposal ? `${proposal.id}:${status}` : '';
     if (key === renderedProposalKey) return;
@@ -121,6 +141,7 @@ export function mountChat(container, { model, onConfirm, voice = null }) {
       hint.classList.toggle('chat__hint--live', state !== 'idle');
     };
     voice.subscribe(renderVoice);
+    voice.subscribe(render);
     renderVoice();
   }
   render();

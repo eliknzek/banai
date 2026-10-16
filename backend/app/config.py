@@ -4,6 +4,8 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.services.speech import DEFAULT_TTS_INSTRUCTIONS
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -17,7 +19,8 @@ class Settings(BaseSettings):
     # Voice (spec §9a). Configurable defaults, not business rules.
     openai_stt_model: str = "gpt-transcribe"
     openai_tts_model: str = "gpt-4o-mini-tts"
-    openai_tts_voice: str = "alloy"
+    openai_tts_voice: str = "cedar"  # chosen by the user from the voice samples (2026-10-16)
+    openai_tts_instructions: str = DEFAULT_TTS_INSTRUCTIONS
 
     @property
     def cors_origin_list(self) -> list[str]:

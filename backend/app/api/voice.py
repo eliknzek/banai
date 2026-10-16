@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, UploadFile
+from fastapi import APIRouter, Depends, Path, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
@@ -16,10 +16,11 @@ from starlette.concurrency import run_in_threadpool
 from app.agent.llm import AgentUnavailable
 from app.agent.orchestrator import MAX_MESSAGE_CHARS
 from app.api.chat import UNAVAILABLE_MESSAGES, signing_key
-from app.api.common import error_response, limiter
+from app.api.common import error_response, get_speech_client, limiter
 from app.config import Settings, get_settings
 from app.services import signing
-from app.services.speech import FakeSpeech, OpenAISpeech, SpeechClient
+from app.services.speech import SpeechClient
+from app.services.speech_sessions import store as speech_sessions
 
 router = APIRouter(prefix="/api/voice")
 
@@ -31,21 +32,14 @@ AUDIO_TYPES = {
 }
 TRANSCRIBE_RATE_LIMIT = "20/minute"
 SPEAK_RATE_LIMIT = "30/minute"
+STREAM_RATE_LIMIT = "60/minute"
+AUDIO_HEADERS = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
 
 
 class SpeakRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     text: Annotated[str, Field(min_length=1, max_length=MAX_MESSAGE_CHARS)]
     token: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
-
-
-def get_speech_client(settings: Annotated[Settings, Depends(get_settings)]) -> SpeechClient | None:
-    if settings.uses_fake_agent:
-        return FakeSpeech()
-    if not settings.openai_api_key:
-        return None
-    return OpenAISpeech(settings.openai_api_key, settings.openai_stt_model,
-                        settings.openai_tts_model, settings.openai_tts_voice)
 
 
 def _unavailable(reason: str):
@@ -86,5 +80,16 @@ def speak(request: Request, body: SpeakRequest,
         chunks = client.speak_stream(body.text)
     except AgentUnavailable as error:
         return _unavailable(error.reason)
-    return StreamingResponse(chunks, media_type="audio/mpeg",
-                             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"})
+    return StreamingResponse(chunks, media_type="audio/mpeg", headers=AUDIO_HEADERS)
+
+
+@router.get("/stream/{speech_id}")
+@limiter.limit(STREAM_RATE_LIMIT)
+def stream(request: Request, speech_id: Annotated[str, Path(pattern=r"^[A-Za-z0-9_-]{16,64}$")]):
+    """The speech that /api/chat started for its reply. Single use: a second request gets 404."""
+    session = speech_sessions.take(speech_id)
+    if session is None:
+        return error_response(404, "NOT_FOUND", "This audio is no longer available.")
+    if session.failed_before_audio(wait_seconds=5):
+        return _unavailable("upstream")
+    return StreamingResponse(session.chunks(), media_type="audio/mpeg", headers=AUDIO_HEADERS)

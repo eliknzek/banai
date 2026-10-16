@@ -78,8 +78,11 @@ export function createChatModel({ getRevision, askAgent = null }) {
         .then((answer) => {
           // replyToken lets the server speak this exact reply (and nothing else) aloud.
           if (answer?.reply) {
-            const token = typeof answer.replyToken === 'string' ? { replyToken: answer.replyToken } : {};
-            push('assistant', String(answer.reply), token);
+            const extra = {};
+            if (typeof answer.replyToken === 'string') extra.replyToken = answer.replyToken;
+            // speechUrl: the voice the server already started for this reply (spoken replies only).
+            if (typeof answer.speechUrl === 'string' && answer.speechUrl.startsWith('/api/voice/stream/')) extra.speechUrl = answer.speechUrl;
+            push('assistant', String(answer.reply), extra);
           }
           if (answer?.proposal) proposal = { ...answer.proposal, id: answer.proposal.proposalId };
         })
