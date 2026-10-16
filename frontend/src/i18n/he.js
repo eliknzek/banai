@@ -249,6 +249,11 @@ export default Object.freeze({
   'render.text': 'יצירת תמונה להמחשה של הארון על רקע נקי. העיצוב והמידות לא משתנים.',
   'render.placeholder': 'ההדמיה תופיע כאן',
   'render.disclaimer': 'תמונה להמחשה בלבד, לא המודל המדויק',
-  'render.status': 'ההדמיה עוד לא זמינה. היא תגיע בשלב ההדמיות.',
   'render.generate': 'צור הדמיה',
+  'render.again': 'צור הדמיה חדשה',
+  'render.download': 'הורד תמונה',
+  'render.working': 'מכינים את ההדמיה… זה לוקח בדרך כלל 20 עד 40 שניות.',
+  'render.imageAlt': 'הדמיה להמחשה של הארון שלך',
+  'render.failed': 'לא הצלחנו ליצור את ההדמיה. נסה שוב.',
+  'api.UNSUPPORTED_IMAGE': 'לא הצלחנו לקרוא את התמונה. נסה שוב.',
 });

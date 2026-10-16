@@ -249,6 +249,11 @@ export default Object.freeze({
   'render.text': 'Create an illustrative image of your wardrobe on a clean background. Your design and its dimensions are not changed.',
   'render.placeholder': 'Your render will appear here',
   'render.disclaimer': 'Illustrative image, not the accurate 3D model',
-  'render.status': 'Rendering is not available yet. It arrives with the AI rendering phase.',
   'render.generate': 'Generate render',
+  'render.again': 'Generate again',
+  'render.download': 'Download image',
+  'render.working': 'Creating your render… this usually takes 20 to 40 seconds.',
+  'render.imageAlt': 'Illustrative render of your wardrobe',
+  'render.failed': 'The render could not be created. Please try again.',
+  'api.UNSUPPORTED_IMAGE': 'The image could not be read. Please try again.',
 });

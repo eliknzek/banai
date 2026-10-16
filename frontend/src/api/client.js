@@ -28,7 +28,8 @@ async function post(path, init, fetchImpl) {
   if (!API_BASE_URL) throw new Error('The API base URL is not configured');
   try {
     return await fetchImpl(`${API_BASE_URL}${path}`, { method: 'POST', ...init });
-  } catch {
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error; // cancelled by the caller, not a network failure
     throw new ApiError('NETWORK', 'The design service could not be reached.', 0);
   }
 }
@@ -69,6 +70,22 @@ export const apiUrl = (path) => `${API_BASE_URL}${path}`;
 /** Apply a signed proposal. Returns { design, revision }. Throws ApiError code STALE on 409. */
 export const applyProposal = ({ design, revision, proposal }, fetchImpl = fetch) =>
   postJson('/api/proposals/apply', { design, revision, proposal }, fetchImpl);
+
+/**
+ * Photoreal render of the current design. `image` is the base64 PNG capture of the 3D view.
+ * Returns { imageBase64, mimeType }. The design is never changed. `signal` cancels the wait.
+ */
+export async function renderDesign({ design, image, doorsVisible = true, signal }, fetchImpl = fetch) {
+  const response = await post('/api/render', {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ design, image, doorsVisible }),
+    signal,
+  }, fetchImpl);
+  if (!response.ok) throw await errorFrom(response);
+  const body = await response.json().catch(() => null);
+  if (body?.success === true) return body.data;
+  throw new ApiError(`HTTP_${response.status}`, 'The request failed. Please try again.', response.status);
+}
 
 /** Push-to-talk recording -> { text }. The text then goes through sendChat like typed input. */
 export async function transcribeAudio(blob, fetchImpl = fetch) {

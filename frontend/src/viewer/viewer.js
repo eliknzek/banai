@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';
+import { onLocaleChange, t } from '../i18n/index.js';
 import { buildWardrobe, disposeWardrobe } from './buildWardrobe.js';
 import { frameOf } from './builders/frame.js';
 import { createDimensions } from './dimensions.js';
@@ -25,6 +26,7 @@ function createScene() {
   fill.position.set(-2, 2, 5);
   scene.add(fill);
   const grid = new THREE.GridHelper(12, 24, '#c9ccc8', '#dcdfdb');
+  grid.name = 'grid';
   grid.position.y = -0.0005;
   scene.add(grid);
   return scene;
@@ -41,6 +43,9 @@ function componentAt(hit, design) {
   return index >= 0 ? design.compartments[index].id : componentId;
 }
 
+// The photoreal render's reference: a plain light studio background.
+const CAPTURE_BACKGROUND = '#f5f4f1';
+
 // Horizontal room kept for the height/depth labels on both sides of the wardrobe.
 const LABEL_MARGIN_MM = 800;
 
@@ -48,7 +53,9 @@ export function createViewer(container, store) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.domElement.setAttribute('aria-label', '3D wardrobe view');
+  const labelCanvas = () => renderer.domElement.setAttribute('aria-label', t('aria.viewer'));
+  labelCanvas();
+  onLocaleChange(labelCanvas);
   container.appendChild(renderer.domElement);
 
   const labels = new CSS2DRenderer();
@@ -138,6 +145,26 @@ export function createViewer(container, store) {
     controls,
     canvas: renderer.domElement,
     meshOf: (componentId) => group?.children.find((mesh) => mesh.userData.componentId === componentId) ?? null,
+    /**
+     * A clean PNG of the current view for the photoreal render: white background, no grid, no
+     * selection outline (dimension labels are DOM, not in the canvas). The scene is restored at once.
+     */
+    capture() {
+      const grid = scene.getObjectByName('grid');
+      const highlight = scene.getObjectByName('highlight');
+      const background = scene.background;
+      const shown = [grid?.visible, highlight?.visible];
+      if (grid) grid.visible = false;
+      if (highlight) highlight.visible = false;
+      scene.background = new THREE.Color(CAPTURE_BACKGROUND);
+      renderer.render(scene, camera);
+      const url = renderer.domElement.toDataURL('image/png');
+      if (grid) grid.visible = shown[0];
+      if (highlight) highlight.visible = shown[1];
+      scene.background = background;
+      renderer.render(scene, camera);
+      return url.slice(url.indexOf(',') + 1); // base64 PNG
+    },
     /** Re-draw the dimension labels, e.g. after the interface language changed. */
     refreshLabels() {
       const { design, selection } = store.getState();

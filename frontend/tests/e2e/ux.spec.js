@@ -173,12 +173,13 @@ test.describe('save and render dialogs (backend phases not built yet)', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('Render opens a dialog labelled as illustrative, with generation disabled', async ({ page }) => {
+  test('Render opens a dialog labelled as illustrative, ready to generate', async ({ page }) => {
     await openDesigner(page);
     await page.getByTestId('open-render').click();
     const dialog = page.getByTestId('render-dialog');
     await expect(dialog).toContainText('Illustrative image, not the accurate 3D model');
-    await expect(page.getByTestId('render-generate')).toBeDisabled();
+    await expect(page.getByTestId('render-generate')).toBeEnabled();
+    await expect(page.getByTestId('render-download')).toBeHidden();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
   });

@@ -5,7 +5,7 @@ import '@fontsource/dm-sans/400.css';
 import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
-import { apiUrl, applyProposal, getCatalog, getDefaultDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
+import { apiUrl, applyProposal, getCatalog, getDefaultDesign, renderDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
 import { createStore } from './state/store.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
@@ -17,6 +17,7 @@ import { createRecorder, isRecordingSupported } from './voice/recorder.js';
 import { createVoiceController } from './voice/voiceController.js';
 import { createSaveDialog } from './share/saveDialog.js';
 import { createRenderDialog } from './render/renderDialog.js';
+import { createRenderSession } from './render/renderSession.js';
 import { apiErrorMessage, applyDocument, getLocale, onLocaleChange, t } from './i18n/index.js';
 import { createLanguageToggle } from './i18n/toggle.js';
 import { createLogo } from './ui/logo.js';
@@ -67,9 +68,17 @@ function createProposalConfirm(store, chatModel) {
   };
 }
 
-function bindDialogs() {
+function bindDialogs(store, viewer) {
   const save = createSaveDialog();
-  const render = createRenderDialog();
+  // The render uses exactly what the customer sees: the committed design and the current 3D view.
+  const session = createRenderSession({
+    snapshot: () => {
+      const { design, ui } = store.getState();
+      return { design, image: viewer.capture(), doorsVisible: ui.doorsVisible };
+    },
+    request: (input) => renderDesign(input),
+  });
+  const render = createRenderDialog({ session });
   document.getElementById('open-save').addEventListener('click', save.open);
   document.getElementById('open-render').addEventListener('click', render.open);
 }
@@ -99,7 +108,7 @@ async function boot() {
   const viewer = createViewer(document.getElementById('viewer'), store);
   bindInteriorToggle(store);
   mountPanel(document.getElementById('properties-content'), store);
-  bindDialogs();
+  bindDialogs(store, viewer);
   applyDocument(); // the dialogs' static texts
   onLocaleChange(() => viewer.refreshLabels());
 

@@ -2,14 +2,17 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
-from app.api import chat, health, proposals, reference, voice
+from app.api import chat, health, proposals, reference, render, voice
 from app.api.common import error_response, limiter
 from app.config import get_settings
 
 # A design is a few KB; this bound keeps oversized bodies out before they are parsed.
 MAX_BODY_BYTES = 256 * 1024
 # Push-to-talk audio is larger: the audio limit plus room for the multipart envelope.
-BODY_LIMITS = {"/api/voice/transcribe": voice.MAX_AUDIO_BYTES + 16 * 1024}
+BODY_LIMITS = {
+    "/api/voice/transcribe": voice.MAX_AUDIO_BYTES + 16 * 1024,
+    "/api/render": render.MAX_IMAGE_BASE64 + 512 * 1024,  # the PNG (base64) plus the design
+}
 
 
 def create_app() -> FastAPI:
@@ -49,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(proposals.router)
     app.include_router(voice.router)
+    app.include_router(render.router)
     return app
 
 
