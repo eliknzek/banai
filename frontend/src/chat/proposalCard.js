@@ -7,8 +7,8 @@ import { STALE_MESSAGE } from './chatModel.js';
 export function renderProposalCard(proposal, status, { onConfirm, onCancel }) {
   const stale = status === 'stale';
   const rows = proposal.changes.map((change) => el('li', { className: 'proposal__row' }, [
-    el('span', { className: 'proposal__title', text: change.title }),
-    el('span', { className: 'proposal__detail', text: change.detail }),
+    el('span', { className: 'proposal__title', text: change.title, attrs: { dir: 'auto' } }),
+    el('span', { className: 'proposal__detail', text: change.detail, attrs: { dir: 'auto' } }),
   ]));
 
   const confirm = el('button', { className: 'btn btn--primary', attrs: { type: 'button' } }, [icon('check', { size: 18 }), document.createTextNode(' Confirm')]);
@@ -25,7 +25,7 @@ export function renderProposalCard(proposal, status, { onConfirm, onCancel }) {
       el('h3', { className: 'proposal__heading', text: 'Proposed changes' }),
       el('span', { className: 'proposal__count', text: `${proposal.changes.length} ${proposal.changes.length === 1 ? 'item' : 'items'}` }),
     ]),
-    el('p', { className: 'proposal__summary', text: proposal.summary }),
+    el('p', { className: 'proposal__summary', text: proposal.summary, attrs: { dir: 'auto' } }),
     el('ul', { className: 'proposal__list' }, rows),
     el('p', { className: 'proposal__note', text: 'Not applied yet. Confirm to apply these changes to your design.' }),
     el('div', { className: 'button-row' }, [confirm, cancel]),

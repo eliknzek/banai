@@ -20,7 +20,7 @@ export function mountChat(container, { model, onConfirm }) {
       : el('span', { className: 'chat__status', text: 'Coming soon', attrs: { title: 'The AI agent is not connected on this server.' } }),
   ]);
 
-  const input = el('textarea', { className: 'chat__input', attrs: { rows: '2', maxlength: String(MAX_MESSAGE_LENGTH), placeholder: 'Describe your wardrobe…', 'aria-label': 'Message to the AI designer' } });
+  const input = el('textarea', { className: 'chat__input', attrs: { rows: '2', dir: 'auto', maxlength: String(MAX_MESSAGE_LENGTH), placeholder: 'Describe your wardrobe…', 'aria-label': 'Message to the AI designer' } });
   input.dataset.testid = 'chat-input';
   const sendButton = el('button', { className: 'icon-btn icon-btn--filled chat__send', attrs: { type: 'submit', 'aria-label': 'Send message' } }, [icon('send')]);
   sendButton.dataset.testid = 'chat-send';
@@ -78,7 +78,8 @@ export function mountChat(container, { model, onConfirm }) {
       renderedCount = 0;
     }
     messages.slice(renderedCount).forEach((message) => {
-      const bubble = el('div', { className: `chat__bubble chat__bubble--${message.role}` });
+      // dir=auto: each bubble follows its own text direction (Hebrew replies render right-to-left).
+      const bubble = el('div', { className: `chat__bubble chat__bubble--${message.role}`, attrs: { dir: 'auto' } });
       if (message.role === 'system') bubble.append(icon('info', { size: 16 }));
       bubble.append(el('span', { text: message.text }));
       list.append(bubble);
