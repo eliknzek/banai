@@ -5,11 +5,11 @@ import '@fontsource/dm-sans/400.css';
 import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
-import { getCatalog, getDefaultDesign } from './api/client.js';
+import { applyProposal, getCatalog, getDefaultDesign, sendChat } from './api/client.js';
 import { createStore } from './state/store.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
-import { createChatModel } from './chat/chatModel.js';
+import { createChatModel, STALE_MESSAGE } from './chat/chatModel.js';
 import { mountChat } from './chat/chatPanel.js';
 import { mountStartScreen } from './entry/startScreen.js';
 import { createSaveDialog } from './share/saveDialog.js';
@@ -27,6 +27,31 @@ function bindInteriorToggle(store) {
   const toggle = document.getElementById('toggle-interior');
   toggle.addEventListener('change', () => store.setDoorsVisible(!toggle.checked));
   store.subscribe((state) => { toggle.checked = !state.ui.doorsVisible; });
+}
+
+const SIGNED_FIELDS = ['proposalId', 'baseRevision', 'baseHash', 'ops', 'signature'];
+
+/**
+ * Confirm = ask the server to verify and apply the signed proposal against the current
+ * committed design, then commit its result. The viewer and the editor re-render from the store.
+ */
+function createProposalConfirm(store, chatModel) {
+  let applying = false;
+  return async (proposal) => {
+    if (applying) return;
+    applying = true;
+    const { design, revision } = store.getState();
+    const signed = Object.fromEntries(SIGNED_FIELDS.map((field) => [field, proposal[field]]));
+    try {
+      const applied = await applyProposal({ design, revision, proposal: signed });
+      const result = store.replaceDesign(applied.design, applied.revision);
+      chatModel.resolveProposal(result.ok ? 'Changes applied to your design.' : 'The changes could not be applied.');
+    } catch (error) {
+      chatModel.resolveProposal(error?.code === 'STALE' ? STALE_MESSAGE : (error?.message || 'The changes could not be applied.'));
+    } finally {
+      applying = false;
+    }
+  };
 }
 
 function bindDialogs() {
@@ -54,11 +79,17 @@ async function boot() {
   mountPanel(document.getElementById('properties-content'), store);
   bindDialogs();
 
-  const chatModel = createChatModel({ getRevision: () => store.getState().revision });
-  // The agent is not connected yet, so a proposal can only come from the dev-only demo below.
+  // The agent always sees the latest committed design; it is only called on customer messages.
+  const chatModel = createChatModel({
+    getRevision: () => store.getState().revision,
+    askAgent: (messages) => {
+      const { design, revision } = store.getState();
+      return sendChat({ messages, design, revision });
+    },
+  });
   const chat = mountChat(document.getElementById('chat-panel'), {
     model: chatModel,
-    onConfirm: () => chatModel.resolveProposal('The AI agent is not connected yet, so nothing was applied.'),
+    onConfirm: createProposalConfirm(store, chatModel),
   });
   // A manual edit changes the revision, which may turn a pending proposal stale.
   store.subscribe(() => chat.refresh());

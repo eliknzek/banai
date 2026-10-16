@@ -67,6 +67,26 @@ export function createStore({ design, revision = 1, catalog }) {
       return { ok: true };
     },
 
+    /**
+     * Commit a design produced by the server (an approved AI proposal). It is validated like
+     * any input; on failure the state is untouched. Returns { ok } like dispatch.
+     */
+    replaceDesign(design, revision) {
+      if (!Number.isInteger(revision) || revision <= state.revision) {
+        return { ok: false, error: new DomainError('SCHEMA_INVALID', 'revision', 'invalid revision') };
+      }
+      let next;
+      try {
+        next = applyOps(design, [], state.catalog);
+      } catch (error) {
+        if (error instanceof DomainError) return { ok: false, error };
+        throw error;
+      }
+      const selection = state.selection && resolveSelection(next, state.selection.id);
+      commit({ design: next, revision, selection });
+      return { ok: true };
+    },
+
     select(id) {
       const selection = id === null ? null : resolveSelection(state.design, id);
       const hideDoors = selection !== null && INTERIOR_KINDS.has(selection.kind) && state.ui.doorsVisible;
