@@ -5,9 +5,12 @@ import { el } from '../editor/fields.js';
 import { icon } from '../ui/icons.js';
 import { MAX_MESSAGE_LENGTH, SUGGESTIONS } from './chatModel.js';
 import { renderProposalCard } from './proposalCard.js';
+import { createMicButton, createMuteToggle, HINTS } from '../voice/voiceControls.js';
 
-export function mountChat(container, { model, onConfirm }) {
+export function mountChat(container, { model, onConfirm, voice = null }) {
   container.classList.add('panel--chat');
+  const mute = voice ? createMuteToggle(voice) : null;
+  const mic = voice?.hasMicrophone() ? createMicButton(voice) : null;
 
   const header = el('header', { className: 'chat__header' }, [
     el('span', { className: 'chat__avatar' }, [icon('sparkle', { size: 22 })]),
@@ -18,14 +21,15 @@ export function mountChat(container, { model, onConfirm }) {
     model.isConnected()
       ? el('span', { className: 'chat__status chat__status--online', text: 'Online' })
       : el('span', { className: 'chat__status', text: 'Coming soon', attrs: { title: 'The AI agent is not connected on this server.' } }),
+    ...(mute ? [mute.element] : []),
   ]);
 
   const input = el('textarea', { className: 'chat__input', attrs: { rows: '2', dir: 'auto', maxlength: String(MAX_MESSAGE_LENGTH), placeholder: 'Describe your wardrobe…', 'aria-label': 'Message to the AI designer' } });
   input.dataset.testid = 'chat-input';
   const sendButton = el('button', { className: 'icon-btn icon-btn--filled chat__send', attrs: { type: 'submit', 'aria-label': 'Send message' } }, [icon('send')]);
   sendButton.dataset.testid = 'chat-send';
-  const composer = el('form', { className: 'chat__composer' }, [input, sendButton]);
-  const hint = el('p', { className: 'chat__hint', text: 'Enter to send · Shift+Enter for a new line' });
+  const composer = el('form', { className: 'chat__composer' }, [input, ...(mic ? [mic.element] : []), sendButton]);
+  const hint = el('p', { className: 'chat__hint', text: mic ? HINTS.idle : 'Enter to send · Shift+Enter for a new line' });
 
   const chips = SUGGESTIONS.map((text) => {
     const chip = el('button', { className: 'suggestion', attrs: { type: 'button' } }, [icon('sparkle', { size: 16 }), el('span', { text })]);
@@ -107,6 +111,18 @@ export function mountChat(container, { model, onConfirm }) {
 
   container.replaceChildren(header, el('div', { className: 'chat__body' }, [welcome, list, thinking, proposalSlot]), el('div', { className: 'chat__footer' }, [composer, hint]));
   model.subscribe(render);
+  if (voice) {
+    const renderVoice = () => {
+      mute.render();
+      if (!mic) return;
+      const state = voice.getState();
+      mic.render(state);
+      hint.textContent = HINTS[state];
+      hint.classList.toggle('chat__hint--live', state !== 'idle');
+    };
+    voice.subscribe(renderVoice);
+    renderVoice();
+  }
   render();
 
   return {

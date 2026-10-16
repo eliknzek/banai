@@ -19,6 +19,7 @@ from app.api.common import error_response, limiter
 from app.config import Settings, get_settings
 from app.domain.catalog import load_catalog
 from app.domain.errors import DomainError
+from app.services import signing
 
 router = APIRouter(prefix="/api")
 
@@ -83,4 +84,5 @@ def chat(request: Request, body: ChatRequest,
         return error_response(422, "INVALID_DESIGN", "The current design is not valid.", detail=error.to_dict())
     except AgentUnavailable as error:
         return error_response(503, "AGENT_UNAVAILABLE", UNAVAILABLE_MESSAGES[error.reason], reason=error.reason)
-    return {"success": True, "data": {"reply": result.reply, "proposal": result.proposal}, "error": None}
+    token = signing.reply_token(signing_key(settings), result.reply)
+    return {"success": True, "data": {"reply": result.reply, "replyToken": token, "proposal": result.proposal}, "error": None}

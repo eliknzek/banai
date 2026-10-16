@@ -40,8 +40,8 @@ export function createChatModel({ getRevision, askAgent = null }) {
   const messages = [];
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener());
-  const push = (role, text) => {
-    messages.push(Object.freeze({ id: nextId, role, text }));
+  const push = (role, text, extra = {}) => {
+    messages.push(Object.freeze({ id: nextId, role, text, ...extra }));
     nextId += 1;
   };
 
@@ -76,7 +76,11 @@ export function createChatModel({ getRevision, askAgent = null }) {
       const done = Promise.resolve()
         .then(() => askAgent(agentHistory(messages)))
         .then((answer) => {
-          if (answer?.reply) push('assistant', String(answer.reply));
+          // replyToken lets the server speak this exact reply (and nothing else) aloud.
+          if (answer?.reply) {
+            const token = typeof answer.replyToken === 'string' ? { replyToken: answer.replyToken } : {};
+            push('assistant', String(answer.reply), token);
+          }
           if (answer?.proposal) proposal = { ...answer.proposal, id: answer.proposal.proposalId };
         })
         .catch((error) => {
@@ -87,6 +91,12 @@ export function createChatModel({ getRevision, askAgent = null }) {
           notify();
         });
       return { ok: true, done };
+    },
+
+    /** A short system note in the conversation (voice status, errors). Never touches the design. */
+    notice(text) {
+      push('system', String(text));
+      notify();
     },
 
     /** Set by the agent integration (Phase 5) or the dev-only demo. */

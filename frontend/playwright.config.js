@@ -17,7 +17,9 @@ export default defineConfig({
   projects: [{
     name: 'chromium',
     use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 },
-      launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] } },
+      launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader',
+        // Voice E2E: a fake microphone (a test tone) and auto-granted permission.
+        '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'] } },
   }],
   webServer: [
     {

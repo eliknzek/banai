@@ -5,13 +5,16 @@ import '@fontsource/dm-sans/400.css';
 import '@fontsource/dm-sans/500.css';
 import '@fontsource/dm-sans/600.css';
 import '@fontsource/dm-sans/700.css';
-import { applyProposal, getCatalog, getDefaultDesign, sendChat } from './api/client.js';
+import { applyProposal, getCatalog, getDefaultDesign, sendChat, speakReply, transcribeAudio } from './api/client.js';
 import { createStore } from './state/store.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
 import { createChatModel, STALE_MESSAGE } from './chat/chatModel.js';
 import { mountChat } from './chat/chatPanel.js';
 import { mountStartScreen } from './entry/startScreen.js';
+import { createAudioPlayer } from './voice/player.js';
+import { createRecorder, isRecordingSupported } from './voice/recorder.js';
+import { createVoiceController } from './voice/voiceController.js';
 import { createSaveDialog } from './share/saveDialog.js';
 import { createRenderDialog } from './render/renderDialog.js';
 import { createLogo } from './ui/logo.js';
@@ -27,6 +30,14 @@ function bindInteriorToggle(store) {
   const toggle = document.getElementById('toggle-interior');
   toggle.addEventListener('change', () => store.setDoorsVisible(!toggle.checked));
   store.subscribe((state) => { toggle.checked = !state.ui.doorsVisible; });
+}
+
+function safeLocalStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null; // private mode or blocked storage: the mute choice is just not remembered
+  }
 }
 
 const SIGNED_FIELDS = ['proposalId', 'baseRevision', 'baseHash', 'ops', 'signature'];
@@ -87,15 +98,24 @@ async function boot() {
       return sendChat({ messages, design, revision });
     },
   });
+  const voice = createVoiceController({
+    chatModel,
+    recorder: isRecordingSupported() ? createRecorder({ onLimit: () => voice.release() }) : null,
+    transcribe: (blob) => transcribeAudio(blob),
+    speak: (reply) => speakReply(reply),
+    player: createAudioPlayer(),
+    storage: safeLocalStorage(),
+  });
   const chat = mountChat(document.getElementById('chat-panel'), {
     model: chatModel,
     onConfirm: createProposalConfirm(store, chatModel),
+    voice,
   });
   // A manual edit changes the revision, which may turn a pending proposal stale.
   store.subscribe(() => chat.refresh());
 
   if (import.meta.env.DEV) {
-    window.__banai = Object.freeze({ store, viewer, chat: chatModel });
+    window.__banai = Object.freeze({ store, viewer, chat: chatModel, voice });
   }
 
   mountStartScreen({

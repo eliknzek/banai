@@ -6,7 +6,11 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+from app.config import get_settings
+
+# E2E runs (APP_ENV=e2e, scripted agent, no OpenAI) send many requests from one IP in a
+# minute, so limits are off there. The limits themselves are covered by pytest.
+limiter = Limiter(key_func=get_remote_address, enabled=not get_settings().uses_fake_agent)
 
 
 def error_response(status: int, code: str, message: str, **extra: object) -> JSONResponse:

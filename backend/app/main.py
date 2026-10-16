@@ -2,12 +2,14 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 
-from app.api import chat, health, proposals, reference
+from app.api import chat, health, proposals, reference, voice
 from app.api.common import error_response, limiter
 from app.config import get_settings
 
 # A design is a few KB; this bound keeps oversized bodies out before they are parsed.
 MAX_BODY_BYTES = 256 * 1024
+# Push-to-talk audio is larger: the audio limit plus room for the multipart envelope.
+BODY_LIMITS = {"/api/voice/transcribe": voice.MAX_AUDIO_BYTES + 16 * 1024}
 
 
 def create_app() -> FastAPI:
@@ -32,7 +34,7 @@ def create_app() -> FastAPI:
             length = request.headers.get("content-length")
             if length is None or not length.isdigit():
                 return error_response(411, "LENGTH_REQUIRED", "A Content-Length header is required.")
-            if int(length) > MAX_BODY_BYTES:
+            if int(length) > BODY_LIMITS.get(request.url.path, MAX_BODY_BYTES):
                 return error_response(413, "PAYLOAD_TOO_LARGE", "The request is too large.")
         return await call_next(request)
 
@@ -46,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(reference.router)
     app.include_router(chat.router)
     app.include_router(proposals.router)
+    app.include_router(voice.router)
     return app
 
 

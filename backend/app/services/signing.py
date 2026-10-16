@@ -32,3 +32,12 @@ def sign(key: str, proposal_id: str, ops: list, base_revision: int, base_hash: s
 def verify(key: str, signature: str, proposal_id: str, ops: list, base_revision: int, base_hash: str) -> bool:
     expected = sign(key, proposal_id, ops, base_revision, base_hash)
     return hmac.compare_digest(expected, signature)
+
+
+def reply_token(key: str, text: str) -> str:
+    """Marks text as a genuine agent reply, so /api/voice/speak only speaks the agent's own words."""
+    return hmac.new(key.encode("utf-8"), b"speak:" + text.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def verify_reply_token(key: str, text: str, token: str) -> bool:
+    return bool(key) and hmac.compare_digest(reply_token(key, text), token)
