@@ -72,7 +72,7 @@ export function mountChat(container, { model, onConfirm, voice = null }) {
 
   let renderedCount = 0;
   let renderedProposalKey = '';
-  // Assistant bubbles whose text may still be revealing with the voice: id -> { bubble, span }.
+  // Assistant bubbles whose text may still be waiting for its voice: id -> { bubble, span, message }.
   const revealing = new Map();
   const shownText = (message) => (voice && message.role === 'assistant' ? voice.visibleText(message) : message.text);
 
@@ -81,7 +81,7 @@ export function mountChat(container, { model, onConfirm, voice = null }) {
     welcome.hidden = messages.length > 0 || model.getProposal() !== null;
     list.hidden = messages.length === 0;
     // Only newly added bubbles are created (and animate in); existing ones stay untouched,
-    // except a spoken reply's text, which appears with the voice and keeps pace with it.
+    // except a spoken reply, whose whole text appears at once when its voice starts.
     if (messages.length < renderedCount) {
       list.replaceChildren();
       renderedCount = 0;

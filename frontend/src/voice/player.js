@@ -5,8 +5,8 @@
 //   chunk (MediaSource), or streamed natively by <audio> where MediaSource cannot play mp3.
 // - a streaming Response (POST /api/voice/speak fallback), played while it downloads (MediaSource).
 // - a Blob, played directly.
-// Optional handlers report playback, so the text can appear and keep pace with the voice:
-// onPlaying(), onProgress(currentTime, duration), onEnded(), onError().
+// Optional handlers report playback, so the text can appear together with the voice:
+// onPlaying(), onEnded(), onError().
 
 const MP3 = 'audio/mpeg';
 
@@ -25,9 +25,7 @@ function appendChunk(buffer, chunk) {
 }
 
 export function createAudioPlayer({ createAudio = () => new Audio(), urls = URL,
-  MediaSourceImpl = globalThis.MediaSource, fetchImpl = (...args) => globalThis.fetch(...args),
-  frame = (fn) => globalThis.requestAnimationFrame?.(fn) ?? setTimeout(fn, 50),
-  cancelFrame = (id) => (globalThis.cancelAnimationFrame ?? clearTimeout)(id) } = {}) {
+  MediaSourceImpl = globalThis.MediaSource, fetchImpl = (...args) => globalThis.fetch(...args) } = {}) {
   let current = null;
   let pendingFetch = null;
 
@@ -37,7 +35,6 @@ export function createAudioPlayer({ createAudio = () => new Audio(), urls = URL,
     const clip = current;
     current = null;
     clip.reader?.cancel().catch(() => {});
-    if (clip.frameId) cancelFrame(clip.frameId);
     clip.audio.pause();
     if (clip.objectUrl) urls.revokeObjectURL(clip.objectUrl);
   };
@@ -45,19 +42,10 @@ export function createAudioPlayer({ createAudio = () => new Audio(), urls = URL,
   function begin({ objectSource = null, url = null }, handlers) {
     stop();
     const audio = createAudio();
-    const clip = { audio, objectUrl: objectSource ? urls.createObjectURL(objectSource) : null, reader: null, frameId: null };
+    const clip = { audio, objectUrl: objectSource ? urls.createObjectURL(objectSource) : null, reader: null };
     current = clip;
     const live = () => current === clip;
-    const tick = () => {
-      if (!live()) return;
-      handlers.onProgress?.(audio.currentTime, audio.duration);
-      clip.frameId = frame(tick);
-    };
-    audio.addEventListener('playing', () => {
-      if (!live()) return;
-      handlers.onPlaying?.();
-      if (!clip.frameId) clip.frameId = frame(tick);
-    });
+    audio.addEventListener('playing', () => { if (live()) handlers.onPlaying?.(); });
     audio.addEventListener('ended', () => {
       if (!live()) return;
       handlers.onEnded?.();

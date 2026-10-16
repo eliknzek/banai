@@ -3,13 +3,10 @@
 //   chatModel.send() exactly like typed text (it shows as the customer's bubble first);
 // - every new assistant reply is spoken, typed or not, unless the customer muted it.
 //
-// Text and voice arrive together: a spoken reply's text is held back until its audio starts,
-// then revealed word by word in step with the speech, like a person talking. It is never stuck:
-// muted, failed or blocked audio, or audio that has not started within SPEECH_START_TIMEOUT_MS,
-// shows the full text at once.
+// Text and voice arrive together: a spoken reply's text is held back until its audio starts, then
+// shown in full at that moment. It is never stuck: muted, failed or blocked audio, or audio that
+// has not started within SPEECH_START_TIMEOUT_MS, shows the text at once.
 // Recorder, API, player and timers are injected, so this module holds no browser state of its own.
-
-import { revealWords, speechProgress } from './reveal.js';
 
 export const MUTE_KEY = 'banai.voice.muted';
 export const SPEECH_START_TIMEOUT_MS = 2500;
@@ -34,7 +31,7 @@ export function createVoiceController({ chatModel, recorder, transcribe, speak, 
   let muted = readMuted(storage);
   let spokenUpTo = Math.max(0, ...chatModel.getMessages().map((message) => message.id));
   let speechRun = 0;
-  // Reveal state of spoken replies: id -> { phase: 'waiting' | 'speaking', fraction, timer }.
+  // Spoken replies whose text waits for their voice: id -> { timer }.
   const reveals = new Map();
   const listeners = new Set();
   const notify = () => listeners.forEach((listener) => listener());
@@ -61,25 +58,11 @@ export function createVoiceController({ chatModel, recorder, transcribe, speak, 
     // silently and notify once, otherwise a render in between would show the new text early.
     reveals.forEach((previous) => clearTimer(previous.timer));
     reveals.clear();
-    const reveal = { phase: 'waiting', fraction: 0, timer: null };
-    reveals.set(message.id, reveal);
-    reveal.timer = setTimer(() => { if (reveal.phase === 'waiting') release(message.id); }, SPEECH_START_TIMEOUT_MS);
+    reveals.set(message.id, { timer: setTimer(() => release(message.id), SPEECH_START_TIMEOUT_MS) });
     notify();
+    // The whole text appears the moment the voice starts (or right away if it cannot start).
     const handlers = {
-      onPlaying: () => {
-        if (!reveals.has(message.id)) return; // already shown in full (timeout): just keep talking
-        clearTimer(reveal.timer);
-        reveal.phase = 'speaking';
-        notify();
-      },
-      onProgress: (currentTime, duration) => {
-        if (reveal.phase !== 'speaking' || !reveals.has(message.id)) return;
-        const fraction = speechProgress(message.text, currentTime, duration);
-        if (fraction > reveal.fraction) {
-          reveal.fraction = fraction;
-          notify();
-        }
-      },
+      onPlaying: () => release(message.id),
       onEnded: () => release(message.id),
       onError: () => release(message.id),
     };
@@ -115,13 +98,11 @@ export function createVoiceController({ chatModel, recorder, transcribe, speak, 
     isMuted: () => muted,
     hasMicrophone: () => recorder !== null,
     /** True while a spoken reply is about to start: the chat keeps its "thinking" state. */
-    isWaiting: () => [...reveals.values()].some((reveal) => reveal.phase === 'waiting'),
-    /** The part of a message to show now: null while its voice has not started yet. */
+    isWaiting: () => reveals.size > 0,
+    /** A message's text to show now, or null while its voice has not started yet. */
     visibleText(message) {
-      const reveal = reveals.get(message.id);
-      if (!reveal) return unannounced(message) ? null : message.text;
-      if (reveal.phase === 'waiting') return null;
-      return revealWords(message.text, reveal.fraction) || message.text.split(/\s+/)[0];
+      if (reveals.has(message.id) || unannounced(message)) return null;
+      return message.text;
     },
 
     setMuted(next) {

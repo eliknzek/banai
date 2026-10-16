@@ -1,35 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createChatModel } from '../../../src/chat/chatModel.js';
-import { revealWords, speechProgress } from '../../../src/voice/reveal.js';
 import { createVoiceController, SPEECH_START_TIMEOUT_MS } from '../../../src/voice/voiceController.js';
-
-describe('revealWords', () => {
-  const text = 'אני יכול להציע מדף בגובה 100 ס"מ.';
-  it('shows nothing at 0, everything at 1, and whole words in between', () => {
-    expect(revealWords(text, 0)).toBe('');
-    expect(revealWords(text, 1)).toBe(text);
-    const half = revealWords(text, 0.5);
-    expect(text.startsWith(half)).toBe(true);
-    expect(text.split(' ')).toEqual(expect.arrayContaining(half.split(' ')));
-  });
-  it('never goes backwards', () => {
-    let previous = 0;
-    for (let f = 0; f <= 1; f += 0.05) {
-      const length = revealWords(text, f).length;
-      expect(length).toBeGreaterThanOrEqual(previous);
-      previous = length;
-    }
-  });
-});
-
-describe('speechProgress', () => {
-  it('uses the real duration when known, an estimate otherwise, and never reaches 1 before the end', () => {
-    expect(speechProgress('one two three four', 2, 4)).toBe(0.5);
-    expect(speechProgress('one two three four', 100, 4)).toBe(0.98);
-    expect(speechProgress('one two three four', 0.5, Infinity)).toBeGreaterThan(0);
-    expect(speechProgress('one two three four', 0.5, NaN)).toBeLessThan(1);
-  });
-});
 
 function setup({ speechUrl = '/api/voice/stream/abcdefghijklmnop1234', muted = false } = {}) {
   const answer = { reply: 'Here is a proposal to widen it.', replyToken: 'a'.repeat(64), proposal: null, speechUrl };
@@ -49,7 +20,7 @@ function setup({ speechUrl = '/api/voice/stream/abcdefghijklmnop1234', muted = f
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('text and voice arrive together', () => {
-  it('holds the reply text until the voice starts, then reveals it with the speech', async () => {
+  it('holds the reply text until the voice starts, then shows all of it at once', async () => {
     const { chatModel, voice, player, reply, handlers } = setup();
     await chatModel.send('wider').done;
     await flush();
@@ -58,10 +29,7 @@ describe('text and voice arrive together', () => {
     expect(voice.isWaiting()).toBe(true);
     handlers().onPlaying();
     expect(voice.isWaiting()).toBe(false);
-    handlers().onProgress(0.4, Infinity);
-    const partial = voice.visibleText(reply());
-    expect(partial.length).toBeGreaterThan(0);
-    expect(partial.length).toBeLessThan(reply().text.length);
+    expect(voice.visibleText(reply())).toBe(reply().text); // whole text, not word by word
     handlers().onEnded();
     expect(voice.visibleText(reply())).toBe(reply().text);
   });
