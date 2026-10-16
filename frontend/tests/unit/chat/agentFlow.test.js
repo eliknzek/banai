@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AGENT_ERROR_MESSAGE, agentHistory, createChatModel, MAX_HISTORY } from '../../../src/chat/chatModel.js';
+import { agentErrorMessage, agentHistory, createChatModel, MAX_HISTORY } from '../../../src/chat/chatModel.js';
 import { applyProposal, ApiError, sendChat } from '../../../src/api/client.js';
 import { createStore } from '../../../src/state/store.js';
 import { loadCatalog, loadDesign } from '../domain/helpers.js';
@@ -42,7 +42,7 @@ describe('connected chat model', () => {
     expect(model.getMessages().at(-1)).toMatchObject({ role: 'system', text: 'Out of credits' });
     const silent = createChatModel({ getRevision: () => 1, askAgent: () => Promise.reject(new Error('')) });
     await silent.send('hi').done;
-    expect(silent.getMessages().at(-1).text).toBe(AGENT_ERROR_MESSAGE);
+    expect(silent.getMessages().at(-1).text).toBe(agentErrorMessage());
   });
 
   it('marks the proposal stale after a manual edit', async () => {
@@ -72,7 +72,7 @@ describe('api client agent calls', () => {
     const [url, init] = fetchImpl.mock.calls[0];
     expect(url).toBe('http://localhost:8000/api/chat');
     expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body)).toEqual({ messages: [], design: {}, revision: 1, speak: false });
+    expect(JSON.parse(init.body)).toEqual({ messages: [], design: {}, revision: 1, speak: false, locale: 'en' });
     await applyProposal({ design: {}, revision: 1, proposal: {} }, ok({ design: {}, revision: 2 }));
   });
 

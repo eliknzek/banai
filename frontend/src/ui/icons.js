@@ -29,7 +29,7 @@ export function icon(name, { size = 20 } = {}) {
   svg.setAttribute('height', String(size));
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
-  svg.classList.add('icon');
+  svg.classList.add('icon', `icon--${name}`);
   const shape = document.createElementNS(SVG_NS, 'path');
   shape.setAttribute('d', path);
   shape.setAttribute('fill', 'currentColor');

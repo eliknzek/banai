@@ -55,7 +55,8 @@ def _changes(raw):
 
 def test_structural_changes_list_every_resulting_width():
     rows = _changes([{"op": "update_dimensions", "width": 2400}])
-    assert rows[-1] == {"title": "Compartments", "detail": "77.6 · 77.6 · 77.6 cm"}
+    assert rows[-1] == {"key": "compartments", "params": {"widths": [776, 776, 776]},
+                        "title": "Compartments", "detail": "77.6 · 77.6 · 77.6 cm"}
 
 
 def test_non_structural_changes_have_no_layout_rows():
@@ -65,8 +66,9 @@ def test_non_structural_changes_have_no_layout_rows():
 
 def test_new_or_resized_narrow_compartments_are_flagged():
     rows = _changes([{"op": "add_compartment", "position": 3, "width": 481}])
-    assert rows[1] == {"title": "Compartments", "detail": "64.3 · 64.3 · 14.3 · 48.1 cm"}
-    assert rows[2] == {"title": "Narrow compartment", "detail": "Compartment 3: 14.3 cm", "level": "warning"}
+    assert (rows[1]["title"], rows[1]["detail"]) == ("Compartments", "64.3 · 64.3 · 14.3 · 48.1 cm")
+    assert rows[2] == {"key": "narrow", "params": {"index": 3, "width": 143}, "title": "Narrow compartment",
+                       "detail": "Compartment 3: 14.3 cm", "level": "warning"}
     assert len(rows) == 3
 
 
@@ -97,8 +99,10 @@ def test_item_changes_name_their_compartment():
     raw = [{"op": "modify_shelf", "id": shelf_id, "y": 300}, {"op": "remove_component", "id": shelf_id}]
     result = apply_ops(base, raw, catalog)
     changes = describe_ops(parse_ops(raw), base, result, catalog)
-    assert changes == [{"title": "Shelf in compartment 1", "detail": "at 30.0 cm"},
-                       {"title": "Removed", "detail": "Shelf in compartment 1"}]
+    assert [(c["title"], c["detail"]) for c in changes] == [("Shelf in compartment 1", "at 30.0 cm"),
+                                                            ("Removed", "Shelf in compartment 1")]
+    assert changes[0]["key"] == "item" and changes[0]["params"] == {"ref": {"kind": "shelf", "compartment": 1}, "y": 300}
+    assert changes[1]["params"] == {"ref": {"kind": "shelf", "compartment": 1}}
 
 
 def test_parse_arguments_only_accepts_json_objects():
@@ -151,3 +155,20 @@ def test_openai_errors_map_to_safe_reasons(error, reason):
     with pytest.raises(AgentUnavailable) as caught:
         openai_client(create).call("sys", [], [])
     assert caught.value.reason == reason
+
+
+@pytest.mark.parametrize("raw,key,params", [
+    ({"op": "update_dimensions", "width": 2400}, "dimensions", {"width": 2400}),
+    ({"op": "configure_doors", "type": "sliding", "count": 3}, "doors", {"type": "sliding", "count": 3}),
+    ({"op": "add_shelf", "compartmentId": "cmp_middle", "y": 1000}, "shelfAdded",
+     {"ref": {"kind": "compartment", "index": 2}, "y": 1000}),
+    ({"op": "set_material", "target": "doors", "color": {"catalogId": "walnut"}}, "material",
+     {"target": {"kind": "doors"}, "values": [{"field": "color", "catalogId": "walnut"}]}),
+    ({"op": "set_material", "target": "carcass", "color": {"custom": True, "name": "Sage"}}, "material",
+     {"target": {"kind": "carcass"}, "values": [{"field": "color", "custom": "Sage"}]}),
+    ({"op": "remove_component", "id": "dr_left"}, "removed", {"ref": {"kind": "door", "index": 1}}),
+])
+def test_rows_carry_language_neutral_keys_and_params(raw, key, params):
+    row = _changes([raw])[0]
+    assert row["key"] == key and row["params"] == params
+    assert row["title"] and row["detail"]  # English fallback is always present

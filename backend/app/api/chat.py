@@ -52,6 +52,8 @@ class ChatRequest(BaseModel):
     revision: Annotated[int, Field(ge=1, le=1_000_000_000)]
     # True when the reply will be read aloud: speech then starts on the server right away.
     speak: bool = False
+    # Interface language; the agent uses it only when the customer's own language is unclear.
+    locale: Literal["he", "en"] = "en"
 
 
 @lru_cache
@@ -84,7 +86,8 @@ def chat(request: Request, body: ChatRequest,
         return error_response(503, "AGENT_UNAVAILABLE", UNAVAILABLE_MESSAGES["not_configured"], reason="not_configured")
     messages = [message.model_dump() for message in body.messages]
     try:
-        result = run_turn(client, messages, body.design, body.revision, load_catalog(), signing_key(settings))
+        result = run_turn(client, messages, body.design, body.revision, load_catalog(), signing_key(settings),
+                          locale=body.locale)
     except DomainError as error:
         return error_response(422, "INVALID_DESIGN", "The current design is not valid.", detail=error.to_dict())
     except AgentUnavailable as error:

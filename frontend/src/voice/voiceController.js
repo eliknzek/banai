@@ -8,13 +8,16 @@
 // has not started within SPEECH_START_TIMEOUT_MS, shows the text at once.
 // Recorder, API, player and timers are injected, so this module holds no browser state of its own.
 
+import { apiErrorMessage, t } from '../i18n/index.js';
+
 export const MUTE_KEY = 'banai.voice.muted';
 export const SPEECH_START_TIMEOUT_MS = 2500;
+// Getters: each message is read in the interface language at the moment it is shown.
 export const MESSAGES = Object.freeze({
-  permission: 'Microphone access was blocked. Allow it in your browser to talk to the AI designer.',
-  noSpeech: "I didn't catch that. Hold the microphone button while you speak.",
-  failed: 'The recording could not be transcribed. Please try again or type your message.',
-  busy: 'Please wait for the current answer first.',
+  get permission() { return t('voice.permission'); },
+  get noSpeech() { return t('voice.noSpeech'); },
+  get failed() { return t('voice.failed'); },
+  get busy() { return t('voice.busy'); },
 });
 
 function readMuted(storage) {
@@ -153,7 +156,7 @@ export function createVoiceController({ chatModel, recorder, transcribe, speak, 
         text = String((await transcribe(clip.blob))?.text ?? '').trim();
       } catch (error) {
         setState('idle');
-        chatModel.notice(typeof error?.message === 'string' && error.code !== 'NETWORK' ? error.message : MESSAGES.failed);
+        chatModel.notice(error?.code && error.code !== 'NETWORK' ? apiErrorMessage(error) : MESSAGES.failed);
         return;
       }
       setState('idle');

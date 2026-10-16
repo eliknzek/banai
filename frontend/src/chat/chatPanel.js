@@ -2,10 +2,11 @@
 // the composer. This panel never changes the design by itself: a proposal only applies when the
 // customer presses Confirm, and the host (main.js) does the apply.
 import { el } from '../editor/fields.js';
+import { applyStatic, onLocaleChange, t } from '../i18n/index.js';
 import { icon } from '../ui/icons.js';
-import { MAX_MESSAGE_LENGTH, SUGGESTIONS } from './chatModel.js';
+import { MAX_MESSAGE_LENGTH, suggestions } from './chatModel.js';
 import { renderProposalCard } from './proposalCard.js';
-import { createMicButton, createMuteToggle, HINTS } from '../voice/voiceControls.js';
+import { createMicButton, createMuteToggle, voiceHint } from '../voice/voiceControls.js';
 
 export function mountChat(container, { model, onConfirm, voice = null }) {
   container.classList.add('panel--chat');
@@ -15,49 +16,62 @@ export function mountChat(container, { model, onConfirm, voice = null }) {
   const header = el('header', { className: 'chat__header' }, [
     el('span', { className: 'chat__avatar' }, [icon('sparkle', { size: 22 })]),
     el('div', { className: 'chat__heading' }, [
-      el('h2', { className: 'chat__title', text: 'AI Designer' }),
-      el('p', { className: 'chat__subtitle', text: 'Design assistant' }),
+      el('h2', { className: 'chat__title', i18n: 'chat.title' }),
+      el('p', { className: 'chat__subtitle', i18n: 'chat.subtitle' }),
     ]),
     model.isConnected()
-      ? el('span', { className: 'chat__status chat__status--online', text: 'Online' })
-      : el('span', { className: 'chat__status', text: 'Coming soon', attrs: { title: 'The AI agent is not connected on this server.' } }),
+      ? el('span', { className: 'chat__status chat__status--online', i18n: 'chat.online' })
+      : el('span', { className: 'chat__status', i18n: 'chat.soon', attrs: { 'data-i18n-title': 'chat.soonTitle' } }),
     ...(mute ? [mute.element] : []),
   ]);
 
-  const input = el('textarea', { className: 'chat__input', attrs: { rows: '2', dir: 'auto', maxlength: String(MAX_MESSAGE_LENGTH), placeholder: 'Describe your wardrobe…', 'aria-label': 'Message to the AI designer' } });
+  const input = el('textarea', { className: 'chat__input', attrs: { rows: '2', maxlength: String(MAX_MESSAGE_LENGTH), 'data-i18n-aria': 'chat.inputAria' } });
+  // Typed text follows its own direction (dir=auto); while empty, the box (and its placeholder)
+  // follows the interface direction, since dir=auto would fall back to left-to-right.
+  const syncInputDirection = () => {
+    if (input.value) input.dir = 'auto';
+    else input.removeAttribute('dir');
+  };
+  input.addEventListener('input', syncInputDirection);
+  // The placeholder can be an entry point's hint; it is kept as a function so it follows the language.
+  let placeholder = () => t('chat.placeholder');
   input.dataset.testid = 'chat-input';
-  const sendButton = el('button', { className: 'icon-btn icon-btn--filled chat__send', attrs: { type: 'submit', 'aria-label': 'Send message' } }, [icon('send')]);
+  const sendButton = el('button', { className: 'icon-btn icon-btn--filled chat__send', attrs: { type: 'submit', 'data-i18n-aria': 'chat.send' } }, [icon('send')]);
   sendButton.dataset.testid = 'chat-send';
   const composer = el('form', { className: 'chat__composer' }, [input, ...(mic ? [mic.element] : []), sendButton]);
-  const hint = el('p', { className: 'chat__hint', text: mic ? HINTS.idle : 'Enter to send · Shift+Enter for a new line' });
+  const hint = el('p', { className: 'chat__hint' });
+  const hintText = () => (mic ? voiceHint(voice.getState()) : t('chat.hintTyping'));
 
-  const chips = SUGGESTIONS.map((text) => {
+  const chipRow = el('div', { className: 'welcome__chips' });
+  const renderChips = () => chipRow.replaceChildren(...suggestions().map((text) => {
     const chip = el('button', { className: 'suggestion', attrs: { type: 'button' } }, [icon('sparkle', { size: 16 }), el('span', { text })]);
     chip.dataset.testid = 'suggestion';
     chip.addEventListener('click', () => {
       input.value = text; // only fills the composer: nothing is sent until the customer presses send
+      syncInputDirection();
       input.focus();
     });
     return chip;
-  });
-  const welcome = el('section', { className: 'welcome', attrs: { 'aria-label': 'Get started' } }, [
-    el('h3', { className: 'welcome__title', text: 'What shall we design today?' }),
-    el('p', { className: 'welcome__text', text: "Describe your wardrobe in your own words. I'll turn it into a proposal that you confirm before anything changes." }),
-    el('div', { className: 'welcome__chips' }, chips),
+  }));
+  const welcome = el('section', { className: 'welcome', attrs: { 'data-i18n-aria': 'chat.welcomeAria' } }, [
+    el('h3', { className: 'welcome__title', i18n: 'chat.welcomeTitle' }),
+    el('p', { className: 'welcome__text', i18n: 'chat.welcomeText' }),
+    chipRow,
   ]);
   welcome.dataset.testid = 'chat-welcome';
 
-  const list = el('div', { className: 'chat__messages', attrs: { role: 'log', 'aria-live': 'polite', 'aria-label': 'Conversation' } });
+  const list = el('div', { className: 'chat__messages', attrs: { role: 'log', 'aria-live': 'polite', 'data-i18n-aria': 'chat.conversation' } });
   list.dataset.testid = 'chat-messages';
   const thinking = el('div', { className: 'chat__thinking', attrs: { role: 'status' } }, [
     el('span', { className: 'chat__dots', attrs: { 'aria-hidden': 'true' } }, [el('span'), el('span'), el('span')]),
-    el('span', { text: 'Designing…' }),
+    el('span', { i18n: 'chat.thinking' }),
   ]);
   thinking.dataset.testid = 'chat-thinking';
   const proposalSlot = el('div', { className: 'chat__proposal' });
 
   const submit = () => {
     if (model.send(input.value).ok) input.value = '';
+    syncInputDirection();
   };
   composer.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -137,18 +151,31 @@ export function mountChat(container, { model, onConfirm, voice = null }) {
       if (!mic) return;
       const state = voice.getState();
       mic.render(state);
-      hint.textContent = HINTS[state];
+      hint.textContent = hintText();
       hint.classList.toggle('chat__hint--live', state !== 'idle');
     };
     voice.subscribe(renderVoice);
     voice.subscribe(render);
     renderVoice();
   }
-  render();
+  // Interface language: relabel the panel in place; messages already in the chat stay as written.
+  const renderLocale = () => {
+    applyStatic(container);
+    input.placeholder = placeholder();
+    hint.textContent = hintText();
+    renderChips();
+    mute?.render();
+    mic?.render(voice.getState());
+    renderedProposalKey = ''; // re-word the card
+    render();
+  };
+  onLocaleChange(renderLocale);
+  renderLocale();
 
   return {
-    focus: (placeholder) => {
-      if (placeholder) input.placeholder = placeholder;
+    focus: (hintFor) => {
+      if (typeof hintFor === 'function') placeholder = hintFor;
+      input.placeholder = placeholder();
       input.focus();
     },
     /** Re-render, e.g. after the design revision changed (a pending proposal may now be stale). */

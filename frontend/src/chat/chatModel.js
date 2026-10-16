@@ -6,19 +6,17 @@
 // fields from the server. It is kept apart from the committed design and is only ever
 // "pending" or "stale" (the design changed after it was made).
 
-export const NOT_CONNECTED_MESSAGE =
-  "The AI agent isn't connected yet (planned for Phase 5). You can design manually in the Properties panel.";
-export const STALE_MESSAGE = 'Design changed. Ask the agent to re-propose.';
+import { apiErrorMessage, t } from '../i18n/index.js';
+
+// Messages are written in the interface language at the moment they are added to the chat.
+export const notConnectedMessage = () => t('chat.notConnected');
+export const staleMessage = () => t('chat.stale');
+export const agentErrorMessage = () => t('chat.agentError');
 export const MAX_MESSAGE_LENGTH = 2000;
 export const MAX_HISTORY = 20; // matches the server's message cap
-export const AGENT_ERROR_MESSAGE = 'The AI designer could not answer. Please try again.';
 
-// Starter prompts shown before the first message. Picking one only fills the composer.
-export const SUGGESTIONS = Object.freeze([
-  '240 cm wide, 260 cm tall, white, three compartments',
-  'Tall wardrobe with sliding doors and a hanging rail',
-  'Four shelves on the left, hanging in the middle, three drawers on the right',
-]);
+/** Starter prompts shown before the first message. Picking one only fills the composer. */
+export const suggestions = () => Object.freeze([t('chat.suggestion1'), t('chat.suggestion2'), t('chat.suggestion3')]);
 
 export function proposalStatus(proposal, currentRevision) {
   if (!proposal) return null;
@@ -67,7 +65,7 @@ export function createChatModel({ getRevision, askAgent = null }) {
       if (busy) return { ok: false, reason: 'busy' };
       push('user', text);
       if (typeof askAgent !== 'function') {
-        push('system', NOT_CONNECTED_MESSAGE);
+        push('system', notConnectedMessage());
         notify();
         return { ok: true };
       }
@@ -87,7 +85,7 @@ export function createChatModel({ getRevision, askAgent = null }) {
           if (answer?.proposal) proposal = { ...answer.proposal, id: answer.proposal.proposalId };
         })
         .catch((error) => {
-          push('system', typeof error?.message === 'string' && error.message ? error.message : AGENT_ERROR_MESSAGE);
+          push('system', error?.code ? apiErrorMessage(error) : agentErrorMessage());
         })
         .finally(() => {
           busy = false;
@@ -112,7 +110,7 @@ export function createChatModel({ getRevision, askAgent = null }) {
     cancelProposal() {
       if (!proposal) return false;
       proposal = null;
-      push('system', 'Proposal cancelled. No changes were made.');
+      push('system', t('chat.cancelled'));
       notify();
       return true;
     },

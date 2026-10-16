@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createChatModel, MAX_MESSAGE_LENGTH, NOT_CONNECTED_MESSAGE, proposalStatus, SUGGESTIONS,
+  createChatModel, MAX_MESSAGE_LENGTH, notConnectedMessage, proposalStatus, suggestions,
 } from '../../../src/chat/chatModel.js';
 
 const proposal = (baseRevision = 1) => ({
@@ -25,7 +25,7 @@ describe('chat model', () => {
     const messages = model.getMessages();
     expect(messages.map((m) => m.role)).toEqual(['user', 'system']);
     expect(messages[0].text).toBe('240 cm wide');
-    expect(messages[1].text).toBe(NOT_CONNECTED_MESSAGE);
+    expect(messages[1].text).toBe(notConnectedMessage());
     expect(model.getProposal()).toBeNull();
   });
 
@@ -82,6 +82,7 @@ describe('chat model', () => {
 
 describe('suggestions', () => {
   it('offers a few short, immutable starter prompts that fit the message limit', () => {
+    const SUGGESTIONS = suggestions();
     expect(SUGGESTIONS.length).toBeGreaterThanOrEqual(3);
     expect(Object.isFrozen(SUGGESTIONS)).toBe(true);
     SUGGESTIONS.forEach((text) => {

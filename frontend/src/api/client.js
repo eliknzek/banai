@@ -2,11 +2,12 @@ import { API_BASE_URL } from '../config.js';
 
 /** A failed API call. `code` is the server's error code (e.g. STALE), or HTTP_<status>. */
 export class ApiError extends Error {
-  constructor(code, message, status) {
+  constructor(code, message, status, reason = null) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.reason = reason; // e.g. AGENT_UNAVAILABLE -> quota | network | ...; used for translation
   }
 }
 
@@ -37,7 +38,7 @@ async function errorFrom(response) {
   const error = body?.error;
   const code = typeof error?.code === 'string' ? error.code : `HTTP_${response.status}`;
   const message = typeof error?.message === 'string' ? error.message : 'The request failed. Please try again.';
-  return new ApiError(code, message, response.status);
+  return new ApiError(code, message, response.status, typeof error?.reason === 'string' ? error.reason : null);
 }
 
 async function postJson(path, payload, fetchImpl) {
@@ -59,8 +60,8 @@ export const getDefaultDesign = (fetchImpl = fetch) => getJson('/api/designs/def
  * One agent turn. Returns { reply, replyToken, proposal | null, speechUrl | null }. Never changes
  * the design. With speak, the server starts the spoken reply at once and returns its speechUrl.
  */
-export const sendChat = ({ messages, design, revision, speak = false }, fetchImpl = fetch) =>
-  postJson('/api/chat', { messages, design, revision, speak }, fetchImpl);
+export const sendChat = ({ messages, design, revision, speak = false, locale = 'en' }, fetchImpl = fetch) =>
+  postJson('/api/chat', { messages, design, revision, speak, locale }, fetchImpl);
 
 /** Absolute URL for a server path such as a speechUrl. */
 export const apiUrl = (path) => `${API_BASE_URL}${path}`;

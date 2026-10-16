@@ -1,31 +1,32 @@
 <!doctype html>
-<html lang="en">
+<html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BanAI Wardrobe Designer</title>
+    <title>BanAI · מעצב ארונות</title>
     <link rel="stylesheet" href="/src/styles/index.css" />
   </head>
   <body>
     <header class="topbar">
-      <h1 class="topbar__title" id="topbar-logo" aria-label="BanAI Wardrobe Designer"></h1>
+      <h1 class="topbar__title" id="topbar-logo" data-i18n-aria="app.title" aria-label="BanAI · מעצב ארונות"></h1>
       <div class="topbar__actions">
+        <span id="topbar-lang"></span>
         <label class="toggle">
           <input type="checkbox" id="toggle-interior" />
-          <span>Show interior</span>
+          <span data-i18n="top.showInterior">הצג פנים</span>
         </label>
-        <span class="topbar__units">cm</span>
-        <button type="button" class="btn btn--tonal" id="open-render" data-testid="open-render">Render</button>
-        <button type="button" class="btn btn--primary" id="open-save" data-testid="open-save">Save</button>
+        <span class="topbar__units" data-i18n="unit.cm">ס״מ</span>
+        <button type="button" class="btn btn--tonal" id="open-render" data-testid="open-render" data-i18n="top.render">הדמיה</button>
+        <button type="button" class="btn btn--primary" id="open-save" data-testid="open-save" data-i18n="top.save">שמירה</button>
       </div>
     </header>
     <div class="banner banner--error" id="error-banner" role="alert" hidden></div>
     <main class="workspace">
-      <aside class="panel" id="chat-panel" aria-label="AI designer"></aside>
-      <section class="viewer" id="viewer" aria-label="3D viewer"></section>
-      <aside class="panel panel--properties" id="properties-panel" aria-label="Properties">
-        <h2 class="panel__title">Properties</h2>
-        <p class="panel__hint">Click a component in the 3D view to edit it.</p>
+      <aside class="panel" id="chat-panel" data-i18n-aria="aria.chatPanel" aria-label="מעצב AI"></aside>
+      <section class="viewer" id="viewer" data-i18n-aria="aria.viewer" aria-label="תצוגת תלת־ממד"></section>
+      <aside class="panel panel--properties" id="properties-panel" data-i18n-aria="aria.properties" aria-label="מאפיינים">
+        <h2 class="panel__title" data-i18n="props.title">מאפיינים</h2>
+        <p class="panel__hint" data-i18n="props.hint">לחץ על חלק בתצוגת התלת־ממד כדי לערוך אותו.</p>
         <div id="properties-content"></div>
       </aside>
     </main>

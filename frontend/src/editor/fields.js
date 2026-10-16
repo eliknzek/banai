@@ -1,14 +1,19 @@
 // Small DOM builders for the properties panel. Text is always set via textContent or
 // input.value, never innerHTML, so design data (e.g. custom names) cannot inject markup.
+import { t } from '../i18n/index.js';
 import { friendlyError, parseCm, toCmText } from './opsFromForm.js';
 
 let fieldCounter = 0;
 const nextId = (prefix) => `${prefix}-${(fieldCounter += 1)}`;
 
-export function el(tag, { className, text, attrs = {} } = {}, children = []) {
+export function el(tag, { className, text, attrs = {}, i18n } = {}, children = []) {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
+  if (i18n) {
+    node.dataset.i18n = i18n; // static text: re-applied on a language switch (i18n/applyStatic)
+    node.textContent = t(i18n);
+  }
   Object.entries(attrs).forEach(([name, value]) => node.setAttribute(name, value));
   node.append(...children);
   return node;
@@ -21,7 +26,7 @@ export function section(title, children) {
 /** A labelled input + inline message. `commit(rawText)` returns { ok, error?, message? }. */
 function inputField({ label, value, testId, suffix, commit, inputMode = 'decimal' }) {
   const id = nextId('field');
-  const input = el('input', { className: 'field__input', attrs: { id, type: 'text', inputmode: inputMode, autocomplete: 'off' } });
+  const input = el('input', { className: 'field__input', attrs: { id, type: 'text', inputmode: inputMode, autocomplete: 'off', dir: 'ltr' } });
   input.value = value;
   if (testId) input.dataset.testid = testId;
   const message = el('p', { className: 'field__message', attrs: { role: 'alert', 'aria-live': 'polite' } });
@@ -47,7 +52,7 @@ function inputField({ label, value, testId, suffix, commit, inputMode = 'decimal
 /** A centimetre field backed by an integer-millimetre value. `onCommit(mm)` dispatches. */
 export function cmField({ label, mm, testId, onCommit }) {
   return inputField({
-    label, testId, suffix: 'cm', value: toCmText(mm),
+    label, testId, suffix: t('unit.cm'), value: toCmText(mm),
     commit: (text) => {
       const parsed = parseCm(text);
       return parsed.ok ? onCommit(parsed.mm) : parsed;
@@ -59,7 +64,7 @@ export function cmField({ label, mm, testId, onCommit }) {
 export function countField({ label, value, testId, onCommit }) {
   return inputField({
     label, testId, value: String(value), inputMode: 'numeric',
-    commit: (text) => (/^\d{1,2}$/.test(text.trim()) ? onCommit(Number(text.trim())) : { ok: false, message: 'Enter a whole number' }),
+    commit: (text) => (/^\d{1,2}$/.test(text.trim()) ? onCommit(Number(text.trim())) : { ok: false, message: t('input.wholeNumber') }),
   });
 }
 
@@ -88,8 +93,8 @@ export function selectField({ label, options, value, onChange, testId }) {
   return el('div', { className: 'field' }, [el('label', { className: 'field__label', text: label, attrs: { for: id } }), select]);
 }
 
-export function button(text, onClick, { variant = 'secondary', testId, disabled = false } = {}) {
-  const node = el('button', { className: `btn btn--${variant}`, text, attrs: { type: 'button' } });
+export function button(text, onClick, { variant = 'secondary', testId, disabled = false, i18n } = {}) {
+  const node = el('button', { className: `btn btn--${variant}`, text, attrs: { type: 'button' }, i18n });
   if (testId) node.dataset.testid = testId;
   node.disabled = disabled;
   node.addEventListener('click', onClick);

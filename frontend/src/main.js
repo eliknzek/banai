@@ -9,7 +9,7 @@ import { apiUrl, applyProposal, getCatalog, getDefaultDesign, sendChat, speakRep
 import { createStore } from './state/store.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
-import { createChatModel, STALE_MESSAGE } from './chat/chatModel.js';
+import { createChatModel } from './chat/chatModel.js';
 import { mountChat } from './chat/chatPanel.js';
 import { mountStartScreen } from './entry/startScreen.js';
 import { createAudioPlayer } from './voice/player.js';
@@ -17,6 +17,8 @@ import { createRecorder, isRecordingSupported } from './voice/recorder.js';
 import { createVoiceController } from './voice/voiceController.js';
 import { createSaveDialog } from './share/saveDialog.js';
 import { createRenderDialog } from './render/renderDialog.js';
+import { apiErrorMessage, applyDocument, getLocale, onLocaleChange, t } from './i18n/index.js';
+import { createLanguageToggle } from './i18n/toggle.js';
 import { createLogo } from './ui/logo.js';
 import { installRipple } from './ui/ripple.js';
 
@@ -56,9 +58,9 @@ function createProposalConfirm(store, chatModel) {
     try {
       const applied = await applyProposal({ design, revision, proposal: signed });
       const result = store.replaceDesign(applied.design, applied.revision);
-      chatModel.resolveProposal(result.ok ? 'Changes applied to your design.' : 'The changes could not be applied.');
+      chatModel.resolveProposal(t(result.ok ? 'chat.applied' : 'chat.notApplied'));
     } catch (error) {
-      chatModel.resolveProposal(error?.code === 'STALE' ? STALE_MESSAGE : (error?.message || 'The changes could not be applied.'));
+      chatModel.resolveProposal(error?.code ? apiErrorMessage(error) : t('chat.notApplied'));
     } finally {
       applying = false;
     }
@@ -72,15 +74,24 @@ function bindDialogs() {
   document.getElementById('open-render').addEventListener('click', render.open);
 }
 
+function mountTopbar() {
+  const logo = document.getElementById('topbar-logo');
+  const renderLogo = () => logo.replaceChildren(createLogo({ size: 34, tagline: t('app.tagline') }));
+  renderLogo();
+  onLocaleChange(renderLogo);
+  document.getElementById('topbar-lang').replaceWith(createLanguageToggle({ className: 'topbar__lang' }));
+}
+
 async function boot() {
-  document.getElementById('topbar-logo').append(createLogo({ size: 34, tagline: 'Wardrobe Designer' }));
+  applyDocument(); // <html lang/dir>, title and static texts in the interface language (Hebrew by default)
+  mountTopbar();
   installRipple();
   let catalog;
   let initial;
   try {
     [catalog, initial] = await Promise.all([getCatalog(), getDefaultDesign()]);
   } catch {
-    showError('Could not reach the design service. Please check your connection and reload.');
+    showError(t('error.unreachable'));
     return;
   }
   // Validates the server data before anything is rendered (throws on invalid data).
@@ -89,6 +100,8 @@ async function boot() {
   bindInteriorToggle(store);
   mountPanel(document.getElementById('properties-content'), store);
   bindDialogs();
+  applyDocument(); // the dialogs' static texts
+  onLocaleChange(() => viewer.refreshLabels());
 
   // The agent always sees the latest committed design; it is only called on customer messages.
   const chatModel = createChatModel({
@@ -96,7 +109,7 @@ async function boot() {
     askAgent: (messages) => {
       const { design, revision } = store.getState();
       // Spoken replies start on the server together with the answer (see voiceController).
-      return sendChat({ messages, design, revision, speak: !voice.isMuted() });
+      return sendChat({ messages, design, revision, speak: !voice.isMuted(), locale: getLocale() });
     },
   });
   const voice = createVoiceController({
@@ -123,11 +136,11 @@ async function boot() {
   mountStartScreen({
     onChoose: (entry) => {
       // All three entry points open the same editor; the chat ones also focus the composer.
-      if (entry.id !== 'basic') chat.focus(entry.composerHint);
+      if (entry.id !== 'basic') chat.focus(() => entry.composerHint); // follows a later language switch
     },
   });
 }
 
 boot().catch(() => {
-  showError('The designer could not start. Please reload the page.');
+  showError(t('error.startFailed'));
 });

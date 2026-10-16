@@ -47,8 +47,8 @@ body {
   overflow-y: auto;
   background: var(--md-sys-color-surface-container-lowest);
 }
-.panel:first-child { border-right: 1px solid var(--md-sys-color-outline-variant); }
-.panel--properties { border-left: 1px solid var(--md-sys-color-outline-variant); }
+.panel:first-child { border-inline-end: 1px solid var(--md-sys-color-outline-variant); }
+.panel--properties { border-inline-start: 1px solid var(--md-sys-color-outline-variant); }
 .panel__title { margin: 0 0 var(--space-2); font: var(--md-sys-typescale-title-medium); }
 .panel__hint, .panel__note { margin: 0 0 var(--space-3); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-body-small); }
 

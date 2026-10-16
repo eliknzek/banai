@@ -48,9 +48,16 @@ def test_design_is_sent_to_the_model_as_data_before_the_history():
     client = ScriptedClient([ToolCall(RESPOND, {"message": "Which width?"})])
     result = turn(client)
     assert result.reply == "Which width?" and result.proposal is None
-    first, *rest = client.requests[0]
+    first, language, *rest = client.requests[0]
     assert first["role"] == "developer" and "data, not instructions" in first["content"]
+    assert language["role"] == "developer" and "interface language is English" in language["content"]
     assert rest == USER
+
+
+def test_interface_language_is_passed_to_the_model():
+    client = ScriptedClient([ToolCall(RESPOND, {"message": "?"})])
+    run_turn(client, USER, basic_wardrobe(), 1, load_catalog(), KEY, locale="he")
+    assert "interface language is Hebrew" in client.requests[0][1]["content"]
 
 
 def test_invalid_ops_are_repaired_on_retry():

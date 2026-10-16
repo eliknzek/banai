@@ -44,11 +44,18 @@ def clean_text(value: object, limit: int) -> str:
     return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
 
 
+LANGUAGE_NAMES = {"he": "Hebrew", "en": "English"}
+
+
 def run_turn(client: LLMClient, messages: list[dict], design: dict, revision: int,
-             catalog: dict, signing_key: str) -> AgentResult:
+             catalog: dict, signing_key: str, locale: str = "en") -> AgentResult:
     base = apply_ops(design, [], catalog)  # parse + full validation of the committed design
     base_hash = signing.design_hash(base)
-    items = [{"role": "developer", "content": design_context(base, revision)}, *messages]
+    language = LANGUAGE_NAMES.get(locale, "English")
+    items = [{"role": "developer", "content": design_context(base, revision)},
+             {"role": "developer", "content": f"The interface language is {language}. Reply in the customer's "
+                                              f"language; if it is unclear, reply in {language}."},
+             *messages]
     instructions = system_prompt(catalog)
 
     for _ in range(MAX_REPAIRS + 1):

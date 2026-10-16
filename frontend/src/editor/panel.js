@@ -4,6 +4,7 @@
 import { compartmentsSection } from './compartmentsSection.js';
 import { componentSection } from './componentSection.js';
 import { wardrobeSection } from './wardrobeSection.js';
+import { onLocaleChange } from '../i18n/index.js';
 
 export function mountPanel(root, store) {
   const run = (ops) => {
@@ -28,6 +29,14 @@ export function mountPanel(root, store) {
   };
 
   const unsubscribe = store.subscribe(render);
+  // A language switch re-renders the same state with the new wording.
+  const offLocale = onLocaleChange(() => {
+    rendered = { design: null, selection: undefined };
+    render(store.getState());
+  });
   render(store.getState());
-  return unsubscribe;
+  return () => {
+    unsubscribe();
+    offLocale();
+  };
 }

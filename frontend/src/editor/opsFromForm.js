@@ -1,5 +1,6 @@
 // Pure mapping from editor form input to domain ops. No DOM here, so every rule is
 // unit-tested. The domain engine remains the single authority on validity.
+import { t, tOr } from '../i18n/index.js';
 import { interiorHeight } from '../domain/geometry.js';
 
 const MAX_ABS_CM = 100_000;
@@ -11,9 +12,9 @@ export const NEW_ITEM = Object.freeze({ shelfThickness: 18, drawerHeight: 200, r
 /** Parse a centimetre input (`.` or `,` decimal) to integer millimetres. */
 export function parseCm(text) {
   const trimmed = String(text ?? '').trim();
-  if (!CM_PATTERN.test(trimmed)) return { ok: false, message: 'Enter a number in cm, e.g. 64.5' };
+  if (!CM_PATTERN.test(trimmed)) return { ok: false, message: t('input.cmFormat') };
   const cm = Number(trimmed.replace(',', '.'));
-  if (!Number.isFinite(cm) || Math.abs(cm) > MAX_ABS_CM) return { ok: false, message: 'That value is too large' };
+  if (!Number.isFinite(cm) || Math.abs(cm) > MAX_ABS_CM) return { ok: false, message: t('input.tooLarge') };
   return { ok: true, mm: Math.round(cm * 10) };
 }
 
@@ -86,17 +87,4 @@ export function addItemOps(design, compartmentId, kind) {
   return [{ op: 'add_rail', compartmentId, y }];
 }
 
-const FRIENDLY = Object.freeze({
-  OVERLAP: 'That would overlap another shelf or drawer. Choose a different position.',
-  OUT_OF_BOUNDS: 'That position is not inside the wardrobe.',
-  OUT_OF_RANGE: 'That value is outside the allowed range.',
-  WIDTH_MISMATCH: 'The widths no longer add up to the wardrobe width.',
-  DOOR_INVALID: 'That door arrangement is not possible here.',
-  NOT_FOUND: 'That component no longer exists.',
-  INVALID_OP: 'That change is not possible for this component.',
-  UNKNOWN_CATALOG_ID: 'That material or colour is not in the catalog.',
-  SCHEMA_INVALID: 'That value is not valid.',
-});
-
-/** Short, engine-independent message for an inline error (never echoes input). */
-export const friendlyError = (error) => FRIENDLY[error?.code] ?? 'The change could not be applied.';
+export const friendlyError = (error) => tOr(`domain.${error?.code}`, t('domain.generic'));
