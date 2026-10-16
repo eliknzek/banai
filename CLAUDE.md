@@ -35,7 +35,13 @@ BanAI is an MVP AI wardrobe designer for standard straight wardrobes only. Three
   **Do not move to the next phase until the security review passes:** every CRITICAL and HIGH finding fixed and re-verified. Summarize the review result in the phase report.
 - **Phased delivery.** Work proceeds Phase 1 → 10 (`docs/architecture.md` §10a). After each phase, stop, report (what was implemented, files changed, real test output, known issues, next step), and wait for the user's approval. Never roll into the next phase on your own.
 - **Branches.** All work lands on `dev`, which Railway auto-deploys to the `dev` environment. Pushing or merging to `main` deploys **production** and needs explicit user approval.
-- **Excluded features (do not build):** pricing, quotes, orders, accounts or registration, dashboards, manufacturing/CNC export, feasibility rules, room design, image uploads, voice, mobile-first layout, drag-and-drop geometry, and any AI change applied without approval. The app must never claim a design is manufacturable.
+- **Excluded features (do not build):** pricing, quotes, orders, accounts or registration, dashboards, manufacturing/CNC export, feasibility rules, room design, image uploads, mobile-first layout, drag-and-drop geometry, and any AI change applied without approval. The app must never claim a design is manufacturable.
+- **Voice (in scope since 2026-10-16, spec §9a).** Voice is only another way to talk to the existing agent:
+  - Chained pipeline: speech-to-text → the existing `/api/chat` → text-to-speech. Speech never bypasses `/api/chat`, so every change is still a validated, signed proposal.
+  - Voice never applies a change: the customer still presses **Confirm**.
+  - The transcript is shown in the chat, so the customer sees what was understood.
+  - The browser never calls OpenAI directly: audio goes to the backend, which holds the key.
+  - Architecture and open questions: Obsidian `07 - Voice Agent Architecture` (ADR-007).
 - **Mandatory stack.**
   - Frontend: vanilla JS ES modules + Three.js, bundled with Vite. **No React, Vue, or R3F.**
   - Backend: FastAPI + Pydantic.
