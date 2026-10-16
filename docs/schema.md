@@ -75,7 +75,7 @@ These are data and rendering-safety checks. **They are not manufacturing or feas
 - **Pure.** The input is never mutated. Each op works on a private deep copy.
 - **Fully re-validated** after every op. The caller never receives an invalid design.
 - **Atomic.** The whole batch is schema-checked first (`ops` must be an array of ≤ 100 ops). Then the first failing op raises `DomainError {code, path, message}`, and nothing is returned.
-- **Explicit ids.** Add ops accept an optional `id`. When omitted, a random id is generated. AI proposals will fill ids in before signing (Phase 5), so replaying an approved proposal is deterministic.
+- **Explicit ids.** Add ops accept an optional `id`. When omitted, a random id is generated. AI proposals are dry-run and applied inside `ids.seeded_ids(proposalId)`, which derives omitted ids from the proposal id, so the approved apply produces exactly the ids of the dry-run.
 - **Integer arithmetic** on both sides, using floor division.
 
 | Op | Fields | Semantics |

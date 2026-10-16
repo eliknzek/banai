@@ -164,7 +164,9 @@ select.field__input {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--md-sys-shape-medium);
 }
-.compartment-row .field { margin: 0; }
+/* position: relative keeps the visually hidden label inside the scrolling panel; without it the
+   label is placed against the page and stretches the document past the viewport. */
+.compartment-row .field { margin: 0; position: relative; }
 .compartment-row .field__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .compartment-row:hover { background: rgba(35, 25, 23, 0.06); }
 .compartment-row.is-selected { background: var(--md-sys-color-secondary-container); box-shadow: inset 3px 0 0 var(--md-sys-color-primary); }
