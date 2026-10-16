@@ -31,15 +31,16 @@ test.describe('start screen', () => {
   });
 });
 
-test.describe('AI chat panel (agent not connected yet)', () => {
-  test('sending a message gets an honest reply and never changes the design', async ({ page }) => {
+test.describe('AI chat panel', () => {
+  test('sending a message gets an agent reply and never changes the design by itself', async ({ page }) => {
     await openDesigner(page);
     const before = await page.evaluate(() => window.__banai.store.getState().revision);
     await page.getByTestId('chat-input').fill('make it 3 m wide');
     await page.getByTestId('chat-send').click();
     const messages = page.getByTestId('chat-messages');
     await expect(messages).toContainText('make it 3 m wide');
-    await expect(messages).toContainText("isn't connected yet");
+    // The E2E backend runs a scripted agent: an ambiguous request gets a clarifying question.
+    await expect(messages).toContainText('width you need in cm');
     expect(await page.evaluate(() => window.__banai.store.getState().revision)).toBe(before);
   });
 
@@ -172,12 +173,13 @@ test.describe('save and render dialogs (backend phases not built yet)', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('Render opens a dialog labelled as illustrative, with generation disabled', async ({ page }) => {
+  test('Render opens a dialog labelled as illustrative, ready to generate', async ({ page }) => {
     await openDesigner(page);
     await page.getByTestId('open-render').click();
     const dialog = page.getByTestId('render-dialog');
     await expect(dialog).toContainText('Illustrative image, not the accurate 3D model');
-    await expect(page.getByTestId('render-generate')).toBeDisabled();
+    await expect(page.getByTestId('render-generate')).toBeEnabled();
+    await expect(page.getByTestId('render-download')).toBeHidden();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
   });

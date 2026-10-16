@@ -75,7 +75,7 @@ These are data and rendering-safety checks. **They are not manufacturing or feas
 - **Pure.** The input is never mutated. Each op works on a private deep copy.
 - **Fully re-validated** after every op. The caller never receives an invalid design.
 - **Atomic.** The whole batch is schema-checked first (`ops` must be an array of ≤ 100 ops). Then the first failing op raises `DomainError {code, path, message}`, and nothing is returned.
-- **Explicit ids.** Add ops accept an optional `id`. When omitted, a random id is generated. AI proposals will fill ids in before signing (Phase 5), so replaying an approved proposal is deterministic.
+- **Explicit ids.** Add ops accept an optional `id`. When omitted, a random id is generated. AI proposals are dry-run and applied inside `ids.seeded_ids(proposalId)`, which derives omitted ids from the proposal id, so the approved apply produces exactly the ids of the dry-run.
 - **Integer arithmetic** on both sides, using floor division.
 
 | Op | Fields | Semantics |
@@ -128,3 +128,8 @@ These live in `defaults.py` / `defaults.js` and are mirrored on both sides:
 - the basic wardrobe (`shared/fixtures/designs/basic.json`): 2000×2400×600 with 3 compartments and hinged doors
 
 The catalog contents (`catalog.json`) are placeholder prototype data.
+
+## Proposal card rows (agent, `backend/app/agent/describe.py`)
+- Every card row is written by the server from the validated ops, never by the model.
+- After any change to compartment widths, a **Compartments** row lists every resulting width in cm, for example `64.3 · 64.3 · 14.3 · 48.1 cm`. The model is told not to state calculated sizes itself.
+- A new or resized compartment narrower than `NARROW_COMPARTMENT_MM` (300 mm) gets a **Narrow compartment** row with `level: "warning"`, highlighted on the card. This is a configurable default for visibility, not a manufacturing or feasibility rule.

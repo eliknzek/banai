@@ -35,7 +35,18 @@ BanAI is an MVP AI wardrobe designer for standard straight wardrobes only. Three
   **Do not move to the next phase until the security review passes:** every CRITICAL and HIGH finding fixed and re-verified. Summarize the review result in the phase report.
 - **Phased delivery.** Work proceeds Phase 1 → 10 (`docs/architecture.md` §10a). After each phase, stop, report (what was implemented, files changed, real test output, known issues, next step), and wait for the user's approval. Never roll into the next phase on your own.
 - **Branches.** All work lands on `dev`, which Railway auto-deploys to the `dev` environment. Pushing or merging to `main` deploys **production** and needs explicit user approval.
-- **Excluded features (do not build):** pricing, quotes, orders, accounts or registration, dashboards, manufacturing/CNC export, feasibility rules, room design, image uploads, voice, mobile-first layout, drag-and-drop geometry, and any AI change applied without approval. The app must never claim a design is manufacturable.
+- **Excluded features (do not build):** pricing, quotes, orders, accounts or registration, dashboards, manufacturing/CNC export, feasibility rules, room design, image uploads, mobile-first layout, drag-and-drop geometry, and any AI change applied without approval. The app must never claim a design is manufacturable.
+- **Carpenter spec PDF (in scope since 2026-10-16, spec §9b, ADR-008).** After a render, the customer can download or share (device share sheet) a build spec for a carpenter:
+  - parts as designed, a front drawing, materials, suggested hardware and a suggested assembly order, with the render as the illustration
+  - still excluded: CNC files, a cut list (cut sizes and clearances are the carpenter's call), server-side email, and any claim of manufacturability
+  - every page carries the "not a manufacturing drawing, verify before cutting" disclaimer
+  - the PDF is built on the server (`backend/app/spec/`, ReportLab + python-bidi) in the interface language
+- **Voice (in scope since 2026-10-16, spec §9a).** Voice is only another way to talk to the existing agent:
+  - Chained pipeline: speech-to-text → the existing `/api/chat` → text-to-speech. Speech never bypasses `/api/chat`, so every change is still a validated, signed proposal.
+  - Voice never applies a change: the customer still presses **Confirm**.
+  - The transcript is shown in the chat, so the customer sees what was understood.
+  - The browser never calls OpenAI directly: audio goes to the backend, which holds the key.
+  - Architecture and open questions: Obsidian `07 - Voice Agent Architecture` (ADR-007).
 - **Mandatory stack.**
   - Frontend: vanilla JS ES modules + Three.js, bundled with Vite. **No React, Vue, or R3F.**
   - Backend: FastAPI + Pydantic.
@@ -89,6 +100,20 @@ npm run build                                  # vite build -> dist/
   - Share link: `/#d=<uuid>.<token>`. The token is 256-bit, stored only as a SHA-256 hash, and compared in constant time.
   - Saves use optimistic concurrency (`UPDATE ... WHERE revision = n`).
 - **API responses** use the envelope `{success, data, error}`.
+- **Interface language (Hebrew by default, English optional).**
+  - Every UI string lives in `frontend/src/i18n/he.js` and `en.js`. The two dictionaries must keep the same keys and placeholders, which a test enforces.
+  - Hebrew is right to left (`<html dir="rtl">`). The language switch is live and is remembered in `localStorage` as `banai.locale`.
+  - The server stays language-neutral:
+    - Proposal-card rows carry a stable `key` plus raw `params` (mm, 1-based indexes from the left together with their `count`, catalog ids), and the client words them (`i18n/changes.js`). The English `title` and `detail` are only the fallback.
+    - The single exception is the carpenter PDF, which is built on the server in the interface language (`backend/app/spec/strings.py`).
+  - **Numbering:** in Hebrew, compartments, partitions and doors are numbered **from the right** (תא 1 = rightmost). Only the displayed number changes, and the data stays left to right.
+    - Use `spatialNumber(i, count)` in the frontend and `Writer.num` in the PDF. Never hand-roll `index + 1` for a label.
+    - The agent receives the same rule as a developer note when the locale is `he`.
+  - Unit tests run in English (`tests/unit/setup/locale.js`). E2E specs default to English through the `uiLocale` fixture, and Hebrew specs use `test.use({ uiLocale: 'default' })`.
+- **Photoreal render (Phase 8).**
+  - `/api/render` takes the captured 3D view plus the validated design and returns an illustrative image. It never changes the design.
+  - The model is `OPENAI_IMAGE_MODEL`, a configurable default.
+  - After a render, the dialog offers the carpenter spec (`/api/spec`). Uploaded images are checked by magic bytes and by pixel size from the header, and are re-encoded before use.
 
 ## Infrastructure
 
@@ -112,3 +137,7 @@ npm run build                                  # vite build -> dist/
 - **`frontend/package.json` overrides `compression` to 1.8.2.** `serve@14` pulls a vulnerable version. Keep the override.
 - **Supabase `projects create`** can time out on the client and still create the project. List projects before retrying. It also auto-links the new project, so re-link to dev afterwards.
 - **`railway logs`** needs `--service` even when you pass a deployment ID.
+- **`gpt-image-2.5*` rejects `input_fidelity`.** Send it only for `gpt-image-1*` models.
+- **ReportLab does not do bidi.** Hebrew lines are wrapped first and then reordered with `python-bidi`, and brackets are mirrored by hand (python-bidi doesn't). In tests, `pypdf` returns cover text in logical order but table cells in visual order, so compare those cells without spaces.
+- **Images inside the PDF:** PIL only warns on huge images. Always check the pixel size from the header before decoding (see `normalize_render`).
+- **Playwright downloads:** read the file with `readFileSync(await download.path())`. A stream from `createReadStream()` may not be readable yet.

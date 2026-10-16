@@ -1,8 +1,16 @@
 import { test as base, expect } from '@playwright/test';
 
 // Every E2E test fails on uncaught page errors or console errors.
+// uiLocale: the suites written in English pick English as a saved user preference; Hebrew specs
+// use 'default' (no saved choice), which is how a first-time visitor sees the app: in Hebrew.
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  uiLocale: ['en', { option: true }],
+  page: async ({ page, uiLocale }, use) => {
+    if (uiLocale !== 'default') {
+      await page.addInitScript((locale) => {
+        if (!window.localStorage.getItem('banai.locale')) window.localStorage.setItem('banai.locale', locale);
+      }, uiLocale);
+    }
     const problems = [];
     page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
     page.on('console', (message) => {
