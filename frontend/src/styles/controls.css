@@ -71,7 +71,7 @@ select.field__input {
   cursor: pointer;
 }
 .segmented__option:last-child { border-right: 0; }
-.segmented__option:hover { background: rgba(35, 25, 23, 0.08); }
+.segmented__option:hover { background: rgba(var(--theme-ink-rgb), 0.08); }
 .segmented__option[aria-pressed="true"] { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
 .segmented__option[aria-pressed="true"]::before { content: '\2713\00a0'; }
 
@@ -87,13 +87,13 @@ select.field__input {
   cursor: pointer;
 }
 .btn:hover:not(:disabled) { background: var(--color-accent-soft); }
-.btn:disabled { border-color: rgba(35, 25, 23, 0.12); color: rgba(35, 25, 23, 0.38); background: transparent; cursor: not-allowed; }
+.btn:disabled { border-color: rgba(var(--theme-ink-rgb), 0.12); color: rgba(var(--theme-ink-rgb), 0.38); background: transparent; cursor: not-allowed; }
 .btn--primary { border-color: var(--md-sys-color-primary); background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 .btn--primary:hover:not(:disabled) { background: var(--color-accent-hover); }
-.btn--primary:disabled { border-color: transparent; background: rgba(35, 25, 23, 0.12); color: rgba(35, 25, 23, 0.38); }
+.btn--primary:disabled { border-color: transparent; background: rgba(var(--theme-ink-rgb), 0.12); color: rgba(var(--theme-ink-rgb), 0.38); }
 .btn--ghost { border-color: transparent; background: transparent; color: var(--md-sys-color-primary); }
 .btn--danger { border-color: transparent; background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
-.btn--danger:hover:not(:disabled) { background: #ffc9c2; }
+.btn--danger:hover:not(:disabled) { background: var(--theme-danger-hover); }
 .btn--link { height: auto; padding: 0; border: 0; border-radius: 0; background: none; color: var(--md-sys-color-on-surface); font-weight: 500; text-align: left; white-space: nowrap; }
 .btn--link:hover:not(:disabled) { background: none; text-decoration: underline; }
 .button-row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
@@ -170,7 +170,7 @@ select.field__input {
 }
 .compartment-row .field { margin: 0; }
 .compartment-row .field__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.compartment-row:hover { background: rgba(35, 25, 23, 0.06); }
+.compartment-row:hover { background: rgba(var(--theme-ink-rgb), 0.06); }
 .compartment-row.is-selected { background: var(--md-sys-color-secondary-container); box-shadow: inset 3px 0 0 var(--md-sys-color-primary); }
 
 /* Keyboard parts list and skip link (accessibility) */

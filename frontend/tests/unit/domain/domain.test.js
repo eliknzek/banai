@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyOps } from '../../../src/domain/apply.js';
-import { basicWardrobe } from '../../../src/domain/presets.js';
+import { basicWardrobe, TEMPLATES, templateDesign } from '../../../src/domain/presets.js';
 import { DomainError } from '../../../src/domain/errors.js';
 import { compartmentXRanges, interiorHeight, interiorWidth, partitionLeftEdge } from '../../../src/domain/geometry.js';
 import { parseDesign } from '../../../src/domain/schema.js';
@@ -23,6 +23,20 @@ describe('schema and validation', () => {
     const two = loadDesign('two');
     expect(validateDesign(two, catalog)).toEqual([]);
     expect(parseDesign(two)).toEqual(two);
+  });
+
+  it('offers three templates besides the basic wardrobe, same ids as the backend', () => {
+    expect(TEMPLATES.map((t) => t.id)).toEqual(['kids', 'double_sliding', 'minimalist']);
+    expect(Object.isFrozen(TEMPLATES[0].ops[0])).toBe(true);
+    expect(() => templateDesign('castle', catalog)).toThrow('unknown template');
+  });
+
+  it.each(TEMPLATES.map((t) => t.id))('template %s matches the shared fixture and is valid', (id) => {
+    const design = templateDesign(id, catalog);
+    expect(design).toEqual(loadDesign(id));
+    expect(validateDesign(design, catalog)).toEqual([]);
+    const inner = design.compartments.reduce((sum, c) => sum + c.width, 0) + design.partitions.reduce((sum, p) => sum + p.thickness, 0);
+    expect(inner + 2 * design.carcass.panelThickness).toBe(design.dimensions.width);
   });
 
   it('basic wardrobe matches the shared fixture and is valid', () => {

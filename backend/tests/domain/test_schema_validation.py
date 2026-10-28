@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from app.domain.defaults import LIMITS, basic_wardrobe
+from app.domain.defaults import LIMITS, TEMPLATE_OPS, basic_wardrobe, template_design
 from app.domain.errors import DomainError
 from app.domain.schema import parse_design
 from app.domain.validation import validate_design
@@ -29,6 +29,25 @@ def test_basic_wardrobe_matches_shared_fixture_and_is_valid(catalog):
     design = basic_wardrobe()
     assert design == load_design("basic")
     assert validate_design(design, catalog) == []
+
+
+def test_template_ids_match_the_frontend():
+    assert list(TEMPLATE_OPS) == ["kids", "double_sliding", "minimalist"]
+
+
+@pytest.mark.parametrize("template_id", list(TEMPLATE_OPS))
+def test_template_matches_shared_fixture_and_is_valid(template_id, catalog):
+    design = template_design(template_id)
+    assert design == load_design(template_id)
+    assert validate_design(design, catalog) == []
+    # Width invariant: compartments + partitions + both side panels = overall width.
+    inner = sum(c["width"] for c in design["compartments"]) + sum(p["thickness"] for p in design["partitions"])
+    assert inner + 2 * design["carcass"]["panelThickness"] == design["dimensions"]["width"]
+
+
+def test_unknown_template_raises():
+    with pytest.raises(KeyError):
+        template_design("castle")
 
 
 def test_unknown_field_is_schema_error(two):

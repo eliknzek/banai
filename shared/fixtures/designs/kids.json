@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "units": "mm",
+  "dimensions": {
+    "width": 1000,
+    "height": 1500,
+    "depth": 500
+  },
+  "carcass": {
+    "panelThickness": 18,
+    "appearance": {
+      "material": {
+        "catalogId": "melamine"
+      },
+      "color": {
+        "catalogId": "white"
+      },
+      "finish": {
+        "catalogId": "matte"
+      }
+    }
+  },
+  "compartments": [
+    {
+      "id": "cmp_left",
+      "width": 473,
+      "shelves": [
+        {
+          "id": "shf_l1",
+          "y": 1250,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [],
+      "rails": [
+        {
+          "id": "rail_l1",
+          "y": 1150
+        }
+      ]
+    },
+    {
+      "id": "cmp_right",
+      "width": 473,
+      "shelves": [
+        {
+          "id": "shf_r1",
+          "y": 600,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_r2",
+          "y": 900,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_r3",
+          "y": 1200,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [
+        {
+          "id": "drw_r1",
+          "y": 0,
+          "height": 180,
+          "appearance": null
+        },
+        {
+          "id": "drw_r2",
+          "y": 180,
+          "height": 180,
+          "appearance": null
+        }
+      ],
+      "rails": []
+    }
+  ],
+  "partitions": [
+    {
+      "id": "prt_1",
+      "thickness": 18
+    }
+  ],
+  "doors": {
+    "type": "hinged",
+    "appearance": {
+      "material": {
+        "catalogId": "melamine"
+      },
+      "color": {
+        "catalogId": "olive_green"
+      },
+      "finish": {
+        "catalogId": "satin"
+      }
+    },
+    "items": [
+      {
+        "id": "dr_left",
+        "compartmentIds": [
+          "cmp_left"
+        ],
+        "hingeSide": "left",
+        "appearance": null
+      },
+      {
+        "id": "dr_right",
+        "compartmentIds": [
+          "cmp_right"
+        ],
+        "hingeSide": "right",
+        "appearance": null
+      }
+    ]
+  }
+}

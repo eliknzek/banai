@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "units": "mm",
+  "dimensions": {
+    "width": 2400,
+    "height": 2400,
+    "depth": 650
+  },
+  "carcass": {
+    "panelThickness": 18,
+    "appearance": {
+      "material": {
+        "catalogId": "melamine"
+      },
+      "color": {
+        "catalogId": "white"
+      },
+      "finish": {
+        "catalogId": "matte"
+      }
+    }
+  },
+  "compartments": [
+    {
+      "id": "cmp_a",
+      "width": 578,
+      "shelves": [
+        {
+          "id": "shf_a1",
+          "y": 2000,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [],
+      "rails": [
+        {
+          "id": "rail_a1",
+          "y": 1900
+        }
+      ]
+    },
+    {
+      "id": "cmp_b",
+      "width": 578,
+      "shelves": [
+        {
+          "id": "shf_b1",
+          "y": 400,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_b2",
+          "y": 800,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_b3",
+          "y": 1200,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_b4",
+          "y": 1600,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_b5",
+          "y": 2000,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [],
+      "rails": []
+    },
+    {
+      "id": "cmp_c",
+      "width": 577,
+      "shelves": [
+        {
+          "id": "shf_c1",
+          "y": 1000,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_c2",
+          "y": 1500,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_c3",
+          "y": 2000,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [
+        {
+          "id": "drw_c1",
+          "y": 0,
+          "height": 200,
+          "appearance": null
+        },
+        {
+          "id": "drw_c2",
+          "y": 200,
+          "height": 200,
+          "appearance": null
+        },
+        {
+          "id": "drw_c3",
+          "y": 400,
+          "height": 200,
+          "appearance": null
+        }
+      ],
+      "rails": []
+    },
+    {
+      "id": "cmp_d",
+      "width": 577,
+      "shelves": [
+        {
+          "id": "shf_d1",
+          "y": 2000,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [],
+      "rails": [
+        {
+          "id": "rail_d1",
+          "y": 1900
+        }
+      ]
+    }
+  ],
+  "partitions": [
+    {
+      "id": "prt_1",
+      "thickness": 18
+    },
+    {
+      "id": "prt_2",
+      "thickness": 18
+    },
+    {
+      "id": "prt_3",
+      "thickness": 18
+    }
+  ],
+  "doors": {
+    "type": "sliding",
+    "appearance": {
+      "material": {
+        "catalogId": "oak_veneer"
+      },
+      "color": {
+        "catalogId": "natural_oak"
+      },
+      "finish": {
+        "catalogId": "matte"
+      }
+    },
+    "items": [
+      {
+        "id": "dr_left",
+        "compartmentIds": [],
+        "hingeSide": null,
+        "appearance": null
+      },
+      {
+        "id": "dr_right",
+        "compartmentIds": [],
+        "hingeSide": null,
+        "appearance": null
+      }
+    ]
+  }
+}

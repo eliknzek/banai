@@ -25,6 +25,8 @@ export function createHighlighter(scene) {
   };
 
   return {
+    /** Outline colour; the viewer passes the theme's --theme-viewer-highlight. */
+    setColor(color) { material.color.set(color); },
     update(group, design, selection) {
       clear();
       if (!group || !selection) return;

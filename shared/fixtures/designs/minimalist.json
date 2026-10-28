@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "units": "mm",
+  "dimensions": {
+    "width": 1800,
+    "height": 2200,
+    "depth": 600
+  },
+  "carcass": {
+    "panelThickness": 18,
+    "appearance": {
+      "material": {
+        "catalogId": "lacquered_mdf"
+      },
+      "color": {
+        "catalogId": "white"
+      },
+      "finish": {
+        "catalogId": "matte"
+      }
+    }
+  },
+  "compartments": [
+    {
+      "id": "cmp_left",
+      "width": 873,
+      "shelves": [
+        {
+          "id": "shf_l1",
+          "y": 1900,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [],
+      "rails": [
+        {
+          "id": "rail_l1",
+          "y": 1800
+        }
+      ]
+    },
+    {
+      "id": "cmp_right",
+      "width": 873,
+      "shelves": [
+        {
+          "id": "shf_r1",
+          "y": 500,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_r2",
+          "y": 1000,
+          "thickness": 18,
+          "appearance": null
+        },
+        {
+          "id": "shf_r3",
+          "y": 1500,
+          "thickness": 18,
+          "appearance": null
+        }
+      ],
+      "drawers": [],
+      "rails": []
+    }
+  ],
+  "partitions": [
+    {
+      "id": "prt_1",
+      "thickness": 18
+    }
+  ],
+  "doors": {
+    "type": "hinged",
+    "appearance": {
+      "material": {
+        "catalogId": "lacquered_mdf"
+      },
+      "color": {
+        "catalogId": "white"
+      },
+      "finish": {
+        "catalogId": "matte"
+      }
+    },
+    "items": [
+      {
+        "id": "dr_left",
+        "compartmentIds": [
+          "cmp_left"
+        ],
+        "hingeSide": "left",
+        "appearance": null
+      },
+      {
+        "id": "dr_right",
+        "compartmentIds": [
+          "cmp_right"
+        ],
+        "hingeSide": "right",
+        "appearance": null
+      }
+    ]
+  }
+}

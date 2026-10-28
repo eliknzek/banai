@@ -29,23 +29,31 @@ export function attachPicking({ dom, camera, getTargets, onPick, onHover = () =>
     down = null;
     onPick(hitAt(event));
   };
-  // Hover feedback (cursor). Throttled to one raycast per frame; ignored while dragging.
+  // Hover feedback (cursor, tooltip). Throttled to one raycast per frame; ignored while dragging.
+  // onHover(hit, event) gets the pointer event too; leaving the canvas reports onHover(null, event).
   let hoverFrame = 0;
   const onPointerMove = (event) => {
     if (event.buttons || hoverFrame) return;
     hoverFrame = requestAnimationFrame(() => {
       hoverFrame = 0;
-      onHover(hitAt(event));
+      onHover(hitAt(event), event);
     });
+  };
+  const onPointerLeave = (event) => {
+    cancelAnimationFrame(hoverFrame);
+    hoverFrame = 0;
+    onHover(null, event);
   };
 
   dom.addEventListener('pointerdown', onPointerDown);
   dom.addEventListener('pointerup', onPointerUp);
   dom.addEventListener('pointermove', onPointerMove);
+  dom.addEventListener('pointerleave', onPointerLeave);
   return () => {
     cancelAnimationFrame(hoverFrame);
     dom.removeEventListener('pointerdown', onPointerDown);
     dom.removeEventListener('pointerup', onPointerUp);
     dom.removeEventListener('pointermove', onPointerMove);
+    dom.removeEventListener('pointerleave', onPointerLeave);
   };
 }

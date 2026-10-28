@@ -25,6 +25,12 @@ body {
 .topbar__title { margin: 0; font-size: inherit; font-weight: inherit; }
 [hidden] { display: none !important; }
 .topbar__actions { display: flex; align-items: center; gap: var(--space-3); color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-large); }
+/* Theme slider: five stops, with the current theme's name beside it. */
+.theme-slider { display: inline-flex; align-items: center; gap: var(--space-2); }
+.theme-slider__label { color: var(--md-sys-color-on-surface); }
+.theme-slider input { width: 96px; margin: 0; accent-color: var(--md-sys-color-primary); cursor: pointer; }
+.theme-slider input:focus-visible { outline: var(--focus-outline); outline-offset: 4px; }
+.theme-slider__name { min-width: 72px; color: var(--md-sys-color-on-surface-variant); font: var(--md-sys-typescale-label-medium); }
 .topbar__units {
   padding: 4px var(--space-3);
   border: 1px solid var(--md-sys-color-outline);
@@ -75,21 +81,43 @@ body {
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: var(--md-sys-shape-full);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 4px rgba(35, 25, 23, 0.12);
+  background: var(--theme-glass);
+  box-shadow: 0 1px 4px rgba(var(--theme-ink-rgb), 0.12);
 }
 .view-presets__btn { height: 32px; padding: 0 var(--space-3); border-color: transparent; }
+.view-presets__btn[hidden] { display: none; }
+.view-presets__btn[aria-pressed="true"] { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+.view-presets__btn[aria-pressed="true"]:hover:not(:disabled) { background: var(--color-accent-hover); }
+/* Showcase rotation toggle, on its own in the bottom-left corner of the 3D view.
+   Scoped to .viewer so it outranks the ripple's `.btn { position: relative }` in components.css. */
+.viewer .view-rotate {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-3);
+  z-index: 1;
+  height: 40px;
+  border-color: transparent;
+  background: var(--theme-glass, rgba(255, 255, 255, 0.9)); /* theme tokens when the theme slider is present */
+  box-shadow: 0 1px 4px rgba(var(--theme-ink-rgb, 35, 25, 23), 0.12);
+  font-variant-numeric: tabular-nums;
+}
+.viewer .view-rotate[aria-pressed="true"] { background: var(--md-sys-color-primary); }
+.viewer .view-rotate[aria-pressed="true"]:hover:not(:disabled) { background: var(--color-accent-hover); }
+@media (prefers-reduced-motion: reduce) { #auto-rotate { display: none; } }
 
 .dim-label {
   padding: 2px var(--space-2);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-sys-shape-extra-small);
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--theme-glass-strong);
   color: var(--md-sys-color-on-surface-variant);
   font: var(--md-sys-typescale-label-small);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/* Hover tooltip over the 3D view; positioned by viewer.js. Never intercepts the pointer. */
+.viewer-tooltip { position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; }
+.viewer-tooltip[hidden] { display: none; }
 .dim-label--selected {
   border-color: var(--md-sys-color-primary);
   background: var(--md-sys-color-primary);

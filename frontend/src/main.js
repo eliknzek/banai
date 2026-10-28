@@ -9,6 +9,7 @@ import {
   applyProposal, createSavedDesign, getCatalog, getDefaultDesign, getHealth, getSavedDesign, sendChat, updateSavedDesign,
 } from './api/client.js';
 import { createStore } from './state/store.js';
+import { templateDesign } from './domain/presets.js';
 import { mountPanel } from './editor/panel.js';
 import { createViewer } from './viewer/viewer.js';
 import { renderSnapshot } from './viewer/snapshot.js';
@@ -22,6 +23,7 @@ import { createExportDialog } from './export/exportDialog.js';
 import { createRenderDialog } from './render/renderDialog.js';
 import { createLogo } from './ui/logo.js';
 import { installRipple } from './ui/ripple.js';
+import { THEMES, createTheme } from './ui/theme.js';
 
 function showError(message) {
   const banner = document.getElementById('error-banner');
@@ -34,6 +36,31 @@ function bindViewPresets(viewer) {
   document.querySelectorAll('#view-presets [data-view]').forEach((button) => {
     button.addEventListener('click', () => viewer.setView(button.dataset.view));
   });
+}
+
+// Showcase rotation toggle. Shown only when motion is allowed; the viewer turns it off on any touch.
+function bindAutoRotate(viewer) {
+  const button = document.getElementById('auto-rotate');
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+  const syncVisibility = () => { button.hidden = Boolean(reducedMotion?.matches); };
+  syncVisibility();
+  reducedMotion?.addEventListener('change', syncVisibility);
+  button.addEventListener('click', () => viewer.setAutoRotate(!viewer.autoRotating));
+}
+
+// Theme slider: one stop per theme; the name is shown next to it and read out as the value.
+function bindThemeSlider(theme) {
+  const slider = document.getElementById('theme-slider');
+  const name = document.getElementById('theme-name');
+  slider.max = String(THEMES.length - 1);
+  const sync = () => {
+    slider.value = String(theme.index());
+    name.textContent = theme.nameOf(theme.get());
+    slider.setAttribute('aria-valuetext', name.textContent);
+  };
+  slider.addEventListener('input', () => theme.set(THEMES[Number(slider.value)].id));
+  theme.subscribe(sync);
+  sync();
 }
 
 // The skip link moves focus without touching the hash: the hash may hold the private design link.
@@ -92,6 +119,8 @@ function bindDialogs({ storage, onSave, link }) {
 }
 
 async function boot() {
+  const theme = createTheme(); // applied first, so nothing renders in the wrong colours
+  bindThemeSlider(theme);
   document.getElementById('topbar-logo').append(createLogo({ size: 34, tagline: 'Wardrobe Designer' }));
   installRipple();
   const language = createLanguage();
@@ -110,9 +139,13 @@ async function boot() {
   }
   // Validates the server data before anything is rendered (throws on invalid data).
   const store = createStore({ design: initial.design, revision: initial.revision, catalog });
-  const viewer = createViewer(document.getElementById('viewer'), store);
+  const viewer = createViewer(document.getElementById('viewer'), store, {
+    onAutoRotateChange: (on) => document.getElementById('auto-rotate').setAttribute('aria-pressed', String(on)),
+  });
   bindInteriorToggle(store);
   bindViewPresets(viewer);
+  bindAutoRotate(viewer);
+  theme.subscribe(() => viewer.applyTheme());
   bindSkipLink();
   const exporter = createExportDialog({
     getDesign: () => store.getState().design,
@@ -169,8 +202,14 @@ async function boot() {
   if (session) return; // reopened from a link: straight into the editor
   mountStartScreen({
     onChoose: (entry) => {
-      // All three entry points open the same editor; the chat ones focus the composer, the manual
-      // one the properties panel, so keyboard focus never falls out of the page when the modal closes.
+      // A template replaces the basic wardrobe loaded at boot. It is built and validated locally,
+      // and committed as the next revision like any other new design.
+      if (entry.templateId) {
+        const { catalog: validCatalog, revision } = store.getState();
+        store.replaceDesign(templateDesign(entry.templateId, validCatalog), revision + 1);
+      }
+      // All entry points open the same editor; the chat ones focus the composer, the manual ones
+      // the properties panel, so keyboard focus never falls out of the page when the modal closes.
       if (entry.focusesChat) chat.focus(entry.id);
       else document.getElementById('properties-panel').focus();
     },

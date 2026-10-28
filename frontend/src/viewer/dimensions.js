@@ -39,6 +39,8 @@ export function createDimensions(scene) {
   };
 
   return {
+    /** Dimension line colour; the viewer passes the theme's --theme-viewer-dimension. */
+    setColor(color) { lineMaterial.color.set(color); },
     update(group, design, selection) {
       clear();
       const { width: w, height: h, depth: d } = design.dimensions;

@@ -31,6 +31,38 @@
   --md-sys-color-scrim: rgba(0, 0, 0, 0.32);
   --md-sys-color-viewer: #eceeec;
 
+  /* Theme tokens: everything below changes per theme (see the [data-theme] blocks at the end). */
+  --theme-ink-rgb: 35, 25, 23;      /* on-surface as r, g, b: state layers, disabled, shadows */
+  --theme-accent-rgb: 180, 83, 42;  /* brand accent as r, g, b: coloured shadows */
+  --theme-error-rgb: 186, 26, 26;
+  --theme-gradient-1: #e9814d;      /* brand gradient: logo, AI avatar, user bubbles */
+  --theme-gradient-2: #b4532a;
+  --theme-gradient-3: #7d3010;
+  --theme-glass: rgba(255, 255, 255, 0.9); /* floating chips over the 3D view */
+  --theme-glass-strong: rgba(255, 255, 255, 0.92); /* dimension labels */
+  --theme-glass-soft: rgba(255, 255, 255, 0.8); /* chat welcome card */
+  --theme-tonal-hover: #f5cfc0;
+  --theme-danger-hover: #ffc9c2;
+  --theme-chat-tint: #fff1ec;
+  --theme-welcome-border: #f3cdbd;
+  --theme-suggestion-hover: #fff6f2;
+  --theme-logo-door: #fff8f6;
+  --theme-logo-sparkle: #ffd8c4;
+  --theme-warning-container: #fff6dc;
+  --theme-warning-container-strong: #ffeaa6;
+  --theme-on-warning: #3d2f00;
+  --theme-warning-icon: #8a6a00;
+  --theme-warning-border: #e0b84d;
+  --theme-success-container: #dcefe0;
+  --theme-on-success-container: #1f4d2b;
+  --theme-success-dot: #2e8b4e;
+  --theme-success-rgb: 46, 139, 78;
+  /* 3D view (read by viewer.js) */
+  --theme-viewer-grid: #c9ccc8;
+  --theme-viewer-grid-minor: #dcdfdb;
+  --theme-viewer-highlight: #c2410c;
+  --theme-viewer-dimension: #5b6470;
+
   /* State layers */
   --md-sys-state-hover: 0.08;
   --md-sys-state-focus: 0.1;
@@ -62,8 +94,8 @@
   --md-sys-shape-full: 999px;
 
   /* Elevation (shadows only for dialogs and menus; everything else uses tonal surfaces) */
-  --md-sys-elevation-1: 0 1px 2px rgba(35, 25, 23, 0.3), 0 1px 3px 1px rgba(35, 25, 23, 0.15);
-  --md-sys-elevation-3: 0 1px 3px rgba(35, 25, 23, 0.3), 0 4px 8px 3px rgba(35, 25, 23, 0.15);
+  --md-sys-elevation-1: 0 1px 2px rgba(var(--theme-ink-rgb), 0.3), 0 1px 3px 1px rgba(var(--theme-ink-rgb), 0.15);
+  --md-sys-elevation-3: 0 1px 3px rgba(var(--theme-ink-rgb), 0.3), 0 4px 8px 3px rgba(var(--theme-ink-rgb), 0.15);
 
   /* Spacing (4px grid) */
   --space-1: 4px;
@@ -82,7 +114,7 @@
   --color-border: var(--md-sys-color-outline-variant);
   --color-accent: var(--md-sys-color-primary);
   --color-accent-hover: #9c4420;
-  --color-accent-soft: rgba(180, 83, 42, 0.12);
+  --color-accent-soft: rgba(var(--theme-accent-rgb), 0.12);
   --color-success: var(--md-sys-color-success);
   --color-danger: var(--md-sys-color-error);
   --color-danger-soft: var(--md-sys-color-error-container);
@@ -94,4 +126,210 @@
   --text-lg: 16px;
   --radius-sm: var(--md-sys-shape-small);
   --radius-md: var(--md-sys-shape-small);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Themes. :root above is theme 1 (Terracotta, the original look). Each block below overrides the
+   colour roles and theme tokens only; type, shape and spacing never change. Every text pair is
+   checked for WCAG AA (4.5:1) by tests/unit/theme.test.js. The choice is stored per browser
+   (src/ui/theme.js) and applied as <html data-theme="...">.
+   --------------------------------------------------------------------------------------------- */
+
+/* 2. Sage: calm grey-green, light surfaces. */
+:root[data-theme="sage"] {
+  --md-sys-color-primary: #3b6744;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #bdedc3;
+  --md-sys-color-on-primary-container: #00210a;
+  --md-sys-color-secondary: #516351;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d3e8d1;
+  --md-sys-color-on-secondary-container: #0f1f11;
+  --md-sys-color-tertiary: #39656b;
+  --md-sys-color-tertiary-container: #bcebf2;
+  --md-sys-color-success: #3d7a4e;
+  --md-sys-color-surface: #f6fbf3;
+  --md-sys-color-on-surface: #181d18;
+  --md-sys-color-on-surface-variant: #414941;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f0f5ed;
+  --md-sys-color-surface-container: #eaefe7;
+  --md-sys-color-surface-container-high: #e5eae2;
+  --md-sys-color-surface-container-highest: #dfe4dc;
+  --md-sys-color-outline: #717970;
+  --md-sys-color-outline-variant: #c1c9be;
+  --md-sys-color-viewer: #e9ede7;
+  --color-accent-hover: #2f5838;
+  --theme-ink-rgb: 24, 29, 24;
+  --theme-accent-rgb: 79, 138, 92;
+  --theme-gradient-1: #7fb08a;
+  --theme-gradient-2: #4f8a5c;
+  --theme-gradient-3: #2a5634;
+  --theme-tonal-hover: #bfdcbd;
+  --theme-chat-tint: #edf5ec;
+  --theme-welcome-border: #c4e3c9;
+  --theme-suggestion-hover: #f1f8f1;
+  --theme-logo-door: #f6fbf3;
+  --theme-logo-sparkle: #d6f0d9;
+  --theme-viewer-grid: #c5cdc4;
+  --theme-viewer-grid-minor: #d9e0d7;
+  --theme-viewer-highlight: #2e7d32;
+  --theme-viewer-dimension: #56625a;
+}
+
+/* 3. Slate: cool blue-grey, professional. */
+:root[data-theme="slate"] {
+  --md-sys-color-primary: #33608f;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d3e4ff;
+  --md-sys-color-on-primary-container: #001c38;
+  --md-sys-color-secondary: #545f71;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d8e3f8;
+  --md-sys-color-on-secondary-container: #111c2b;
+  --md-sys-color-tertiary: #6c5677;
+  --md-sys-color-tertiary-container: #f4d9ff;
+  --md-sys-color-surface: #f8f9ff;
+  --md-sys-color-on-surface: #191c20;
+  --md-sys-color-on-surface-variant: #43474e;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f3fa;
+  --md-sys-color-surface-container: #eceef4;
+  --md-sys-color-surface-container-high: #e7e8ee;
+  --md-sys-color-surface-container-highest: #e1e2e8;
+  --md-sys-color-outline: #73777f;
+  --md-sys-color-outline-variant: #c3c6cf;
+  --md-sys-color-viewer: #e8ebf0;
+  --color-accent-hover: #26507a;
+  --theme-ink-rgb: 25, 28, 32;
+  --theme-accent-rgb: 62, 110, 166;
+  --theme-gradient-1: #6f9bd1;
+  --theme-gradient-2: #3e6ea6;
+  --theme-gradient-3: #1f3f66;
+  --theme-tonal-hover: #c3d3ec;
+  --theme-chat-tint: #eef3fb;
+  --theme-welcome-border: #c9d9ef;
+  --theme-suggestion-hover: #f2f6fd;
+  --theme-logo-door: #f8f9ff;
+  --theme-logo-sparkle: #d6e6ff;
+  --theme-viewer-grid: #c6cbd3;
+  --theme-viewer-grid-minor: #d9dde3;
+  --theme-viewer-highlight: #1d6fd1;
+  --theme-viewer-dimension: #4f5a68;
+}
+
+/* 4. Midnight (extreme): dark mode with an amber accent. */
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --md-sys-color-primary: #ffb95c;
+  --md-sys-color-on-primary: #452b00;
+  --md-sys-color-primary-container: #633f00;
+  --md-sys-color-on-primary-container: #ffddb7;
+  --md-sys-color-secondary: #dcc2a1;
+  --md-sys-color-on-secondary: #3e2d16;
+  --md-sys-color-secondary-container: #574430;
+  --md-sys-color-on-secondary-container: #f9dfbb;
+  --md-sys-color-tertiary: #b5cea0;
+  --md-sys-color-tertiary-container: #374c2a;
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+  --md-sys-color-success: #8fd49c;
+  --md-sys-color-surface: #121316;
+  --md-sys-color-on-surface: #e4e2e6;
+  --md-sys-color-on-surface-variant: #c7c5cc;
+  --md-sys-color-surface-container-lowest: #0d0e11;
+  --md-sys-color-surface-container-low: #1a1b1f;
+  --md-sys-color-surface-container: #1e1f23;
+  --md-sys-color-surface-container-high: #292a2d;
+  --md-sys-color-surface-container-highest: #343538;
+  --md-sys-color-outline: #918f97;
+  --md-sys-color-outline-variant: #46464e;
+  --md-sys-color-scrim: rgba(0, 0, 0, 0.6);
+  --md-sys-color-viewer: #1b1d22;
+  --color-accent-hover: #ffcb85;
+  --theme-ink-rgb: 228, 226, 230;
+  --theme-accent-rgb: 255, 167, 51;
+  --theme-error-rgb: 255, 180, 171;
+  --theme-gradient-1: #ffd08a;
+  --theme-gradient-2: #ffa733;
+  --theme-gradient-3: #c26b00;
+  --theme-glass: rgba(30, 31, 35, 0.9);
+  --theme-glass-strong: rgba(30, 31, 35, 0.92);
+  --theme-glass-soft: rgba(30, 31, 35, 0.8);
+  --theme-tonal-hover: #6a5440;
+  --theme-danger-hover: #b3141f;
+  --theme-chat-tint: #221d16;
+  --theme-welcome-border: #4a3c28;
+  --theme-suggestion-hover: #26221c;
+  --theme-logo-door: #1a1b1f;
+  --theme-logo-sparkle: #ffddb7;
+  --theme-warning-container: #3a2f00;
+  --theme-warning-container-strong: #574500;
+  --theme-on-warning: #ffe08a;
+  --theme-warning-icon: #ffd257;
+  --theme-warning-border: #8a6d00;
+  --theme-success-container: #1d3a24;
+  --theme-on-success-container: #b5f1bf;
+  --theme-success-dot: #6fcf86;
+  --theme-success-rgb: 111, 207, 134;
+  --theme-viewer-grid: #3a3d44;
+  --theme-viewer-grid-minor: #2a2d33;
+  --theme-viewer-highlight: #ffb000;
+  --theme-viewer-dimension: #9aa3ad;
+}
+
+/* 5. Neon (extreme): stark white and black, hot magenta and electric yellow. */
+:root[data-theme="neon"] {
+  --md-sys-color-primary: #c2008a;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffe600;
+  --md-sys-color-on-primary-container: #000000;
+  --md-sys-color-secondary: #000000;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #ffe600;
+  --md-sys-color-on-secondary-container: #000000;
+  --md-sys-color-tertiary: #0039cc;
+  --md-sys-color-tertiary-container: #00e5ff;
+  --md-sys-color-success: #00703a;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #000000;
+  --md-sys-color-on-surface-variant: #1f1f1f;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fff9c4;
+  --md-sys-color-surface-container: #fff6a8;
+  --md-sys-color-surface-container-high: #fff18a;
+  --md-sys-color-surface-container-highest: #ffec6b;
+  --md-sys-color-outline: #000000;
+  --md-sys-color-outline-variant: #000000;
+  --md-sys-color-viewer: #fdfde8;
+  --color-accent-hover: #8f0066;
+  --theme-ink-rgb: 0, 0, 0;
+  --theme-accent-rgb: 224, 0, 160;
+  --theme-gradient-1: #ff4fc6;
+  --theme-gradient-2: #e000a0;
+  --theme-gradient-3: #8a0063;
+  --theme-glass: rgba(255, 255, 255, 0.96);
+  --theme-glass-strong: rgba(255, 255, 255, 0.96);
+  --theme-glass-soft: rgba(255, 255, 255, 0.96);
+  --theme-tonal-hover: #ffd000;
+  --theme-chat-tint: #fff36b;
+  --theme-welcome-border: #000000;
+  --theme-suggestion-hover: #fff9c4;
+  --theme-logo-door: #ffffff;
+  --theme-logo-sparkle: #ffe600;
+  --theme-warning-container: #ffe600;
+  --theme-warning-container-strong: #ffe600;
+  --theme-on-warning: #000000;
+  --theme-warning-icon: #000000;
+  --theme-warning-border: #000000;
+  --theme-success-container: #00e676;
+  --theme-on-success-container: #000000;
+  --theme-success-dot: #00a152;
+  --theme-success-rgb: 0, 161, 82;
+  --theme-viewer-grid: #e0dc9a;
+  --theme-viewer-grid-minor: #ece9b8;
+  --theme-viewer-highlight: #ff00b8;
+  --theme-viewer-dimension: #000000;
 }

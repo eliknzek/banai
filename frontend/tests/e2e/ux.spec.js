@@ -22,6 +22,38 @@ test.describe('start screen', () => {
     await expect(page.getByText('W 200.0 cm', { exact: true })).toBeVisible();
   });
 
+  for (const [id, dims, doors] of [
+    ['kids', 'W 100.0 cm|H 150.0 cm|D 50.0 cm', 'hinged'],
+    ['double_sliding', 'W 240.0 cm|H 240.0 cm|D 65.0 cm', 'sliding'],
+    ['minimalist', 'W 180.0 cm|H 220.0 cm|D 60.0 cm', 'hinged'],
+  ]) {
+    test(`the "${id}" template opens the editor with that design`, async ({ page }) => {
+      await page.goto('/');
+      const templates = page.getByRole('region', { name: 'Or start from a template' });
+      await expect(templates.getByRole('button', { name: /Use this template/ })).toHaveCount(3);
+      await page.getByTestId(`entry-template-${id}`).click();
+      await expect(page.getByTestId('start-screen')).toHaveCount(0);
+      for (const label of dims.split('|')) await expect(page.getByText(label, { exact: true })).toBeVisible();
+      const { design, revision } = await page.evaluate(() => window.__banai.store.getState());
+      expect(design.doors.type).toBe(doors);
+      expect(revision).toBe(2);
+      await expect(page.locator('#properties-panel')).toBeFocused();
+    });
+  }
+
+  test('a template design saves and reopens from its link like any other', async ({ page, context }) => {
+    await page.goto('/');
+    await page.getByTestId('entry-template-kids').click();
+    await page.getByTestId('open-save').click();
+    await page.getByTestId('save-confirm').click();
+    await expect(page.getByTestId('share-link')).toHaveValue(/#d=/);
+    const link = await page.getByTestId('share-link').inputValue();
+    const reopened = await context.newPage();
+    await reopened.goto(link);
+    await reopened.waitForFunction(() => window.__banai?.viewer.meshOf('shf_r1'));
+    expect(await reopened.evaluate(() => window.__banai.store.getState().design.dimensions)).toEqual({ width: 1000, height: 1500, depth: 500 });
+  });
+
   test('"Describe it" opens the same editor and focuses the chat composer', async ({ page }) => {
     await page.goto('/');
     await page.getByTestId('entry-freeText').click();

@@ -1,4 +1,6 @@
 // The three ways to start (spec section 6). All of them land in the same editor and data model.
+import { TEMPLATES } from '../domain/presets.js';
+
 export const ENTRY_POINTS = Object.freeze([
   Object.freeze({
     id: 'guided',
@@ -27,3 +29,14 @@ export const ENTRY_POINTS = Object.freeze([
 ]);
 
 export const getEntryPoint = (id) => ENTRY_POINTS.find((entry) => entry.id === id) ?? null;
+
+// Extra ready-made starting points, shown below the three entry points. Each opens the manual
+// editor with a template design (domain/presets.js TEMPLATES) instead of the basic wardrobe.
+export const TEMPLATE_ENTRIES = Object.freeze(TEMPLATES.map((template) => Object.freeze({
+  id: `template-${template.id}`,
+  templateId: template.id,
+  title: template.title,
+  description: template.description,
+  action: 'Use this template',
+  focusesChat: false,
+})));
